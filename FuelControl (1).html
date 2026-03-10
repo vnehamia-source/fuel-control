@@ -1,9 +1,86 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/FuelControl (1).html b/FuelControl (1).html
-index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9cb11f14a8 100644
+index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..0067581dff0e32ed330483fda399b937382e7e6b 100644
 --- a/FuelControl (1).html	
 +++ b/FuelControl (1).html	
-@@ -309,51 +309,51 @@ function periodBarHTML(active, fn, includeAll=false, fromKey='', toKey='', fromV
+@@ -251,109 +251,124 @@ function inRange(dateStr, from, to) {
+   const d = dateStr; // 'YYYY-MM-DD' string comparison works directly
+   if(from && to) return d >= from && d <= to;
+   if(from) return d >= from;
+   if(to) return d <= to;
+   return true;
+ }
+ function inPeriod(dateStr, period) {
+   if(!dateStr || period==='All') return true;
+   const d = new Date(dateStr); const ref = new Date();
+   if(period==='Daily') return dateStr===ref.toISOString().split('T')[0];
+   if(period==='Weekly') { const s=new Date(ref); s.setDate(ref.getDate()-ref.getDay()); s.setHours(0,0,0,0); const e=new Date(s); e.setDate(s.getDate()+6); e.setHours(23,59,59,999); return d>=s&&d<=e; }
+   if(period==='Monthly') return d.getFullYear()===ref.getFullYear()&&d.getMonth()===ref.getMonth();
+   if(period==='Yearly') return d.getFullYear()===ref.getFullYear();
+   return true;
+ }
+ 
+ function periodLabel(period) {
+   const now=new Date();
+   if(period==='Daily') return now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+   if(period==='Weekly') { const s=new Date(now); s.setDate(now.getDate()-now.getDay()); const e=new Date(s); e.setDate(s.getDate()+6); return `${s.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} – ${e.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`; }
+   if(period==='Monthly') return now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+   if(period==='Yearly') return String(now.getFullYear());
+   return '';
+ }
+ 
+-// Returns the most recent refill record for a train before a given date (sorted by date, then insertion order).
+-// beforeDate: only consider records with date < beforeDate. If omitted → latest overall.
+-// excludeIdx: skip this array index (used in edit modal so a record isn't its own predecessor).
++// Returns the most recent refill record for a train before a target record point (sorted by date, then insertion order).
++// beforeDate: when provided, candidates include earlier dates; for same-date rows, only rows with smaller index are considered.
++// excludeIdx: when provided, skip that row index and use it as the same-date position boundary.
+ function getPrevRecord(trainCode, beforeDate, excludeIdx) {
+   let recs = state.refills
+     .map((r, i) => ({r, i}))
+     .filter(({r, i}) => r.trainCode === trainCode && (excludeIdx == null || i !== excludeIdx));
+   recs.sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+-  const candidates = beforeDate ? recs.filter(({r}) => r.date < beforeDate) : recs;
++  if(!beforeDate) return recs.length ? recs[recs.length - 1].r : null;
++  const candidates = recs.filter(({r, i}) =>
++    r.date < beforeDate || (r.date === beforeDate && (excludeIdx == null || i < excludeIdx))
++  );
+   return candidates.length ? candidates[candidates.length - 1].r : null;
+ }
+ 
++function normSeal(v) {
++  return String(v == null ? '' : v).trim();
++}
++
++function batterySealStatus(oldBatterySeal, prevNewBatterySeal) {
++  const oldV = normSeal(oldBatterySeal);
++  const prevV = normSeal(prevNewBatterySeal);
++  if(!prevV) return 'FIRST FILL';
++  if(!oldV) return 'MISSING';
++  return oldV === prevV ? 'PASS' : 'FAIL';
++}
++
+ function sealColor(check) {
+   return {PASS:'#4ade80','FIRST FILL':'#7dd3fc',FAIL:'#f87171'}[check]||'#555';
+ }
+ function sealBadgeHTML(check) {
+   if(!check) return '';
+   return `<span class="seal-badge" style="color:${sealColor(check)}">● ${check}</span>`;
+ }
+ function statusBadgeHTML(status) {
+   const c = {Pending:{bg:'#1a1200',border:'#f59e0b',text:'#fbbf24'},Approved:{bg:'#001020',border:'#38bdf8',text:'#7dd3fc'},Delivered:{bg:'#001508',border:'#22c55e',text:'#4ade80'}}[status]||{bg:'#111',border:'#333',text:'#888'};
+   return `<span class="badge" style="background:${c.bg};border:1px solid ${c.border};color:${c.text}">${status}</span>`;
+ }
+ function periodBarHTML(active, fn, includeAll=false, fromKey='', toKey='', fromVal='', toVal='', periodKey='') {
+   const items = includeAll ? ['All',...PERIODS] : PERIODS;
+   const cls = includeAll ? 'filter-period-btn' : 'period-btn';
+   const presets = `<div style="${includeAll?'display:flex;gap:2px;background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:2px':''}">
+     ${items.map(p=>`<button class="${cls}${active===p?' active':''}" onclick="${fn}('${p}')">${p}</button>`).join('')}
+   </div>`;
+   if(!fromKey) return presets;
+   const dateStyle = 'background:#0d0d0d;color:#e2e8f0;border:1px solid #2a2a2a;border-radius:4px;padding:5px 8px;font-family:inherit;font-size:10px;width:136px;outline:none;cursor:pointer;color-scheme:dark';
+   const dateRange = `<div style="display:flex;align-items:center;gap:6px;background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:4px 10px">
+     <span style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;white-space:nowrap">From</span>
      <input type="date" value="${fromVal}" style="${dateStyle}" onchange="state.${fromKey}=this.value;state.${periodKey}='Custom';render()">
      <span style="font-size:9px;color:#333">—</span>
      <span style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;white-space:nowrap">To</span>
@@ -56,7 +133,7 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
      fueltypes: renderFuelTypes,
      stations: renderStations,
      share: renderShare,
-@@ -646,50 +646,51 @@ function renderDashboard() {
+@@ -646,50 +661,51 @@ function renderDashboard() {
                  <tbody>
                    ${openRows}
                    ${showLog ? fixedRows : ''}
@@ -108,7 +185,7 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
      } else if(s.oldSealLeft && s.oldSealRight) {
        sealCheck = (s.oldSealLeft===lastRecord.newSealLeft && s.oldSealRight===lastRecord.newSealRight) ? 'PASS' : 'FAIL';
      }
-@@ -699,50 +700,54 @@ function renderRefill() {
+@@ -699,50 +715,54 @@ function renderRefill() {
    const savedBanner = state.savedRefill ? `
      <div class="success-banner">
        <span style="color:#4ade80;font-size:16px">✓</span>
@@ -163,7 +240,7 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
                  </div>`)}
                ${fieldHTML('Station *',`<select id="rf-station" onchange="rfChange('station',this.value)"><option value="">Select…</option>${state.stations.map(st=>`<option value="${st}"${s.station===st?' selected':''}>${st}</option>`).join('')}</select>`)}
              </div>
-@@ -793,59 +798,64 @@ function renderRefill() {
+@@ -793,75 +813,80 @@ function renderRefill() {
                ${fieldHTML('Station Meter End',`<input type="number" id="rf-endodo" value="${s.endOdo}" placeholder="reading" oninput="rfSilent('endOdo',this.value);rfUpdateMeter()">`)}
                ${fieldHTML('Fuel Type *',`<select id="rf-fueltype" onchange="rfChange('fuelType',this.value)"><option value="">Select…</option>${state.fuelTypes.map(f=>`<option value="${f}"${s.fuelType===f?' selected':''}>${f}</option>`).join('')}</select>`)}
              </div>
@@ -220,7 +297,8 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
                : (() => {
                    const lastL = lastRecord ? (lastRecord.newSealLeft||'') : '';
                    const lastR = lastRecord ? (lastRecord.newSealRight||'') : '';
-                   const lastB = lastRecord ? (lastRecord.newSealBattery||'') : '';
+-                  const lastB = lastRecord ? (lastRecord.newSealBattery||'') : '';
++                  const lastB = lastRecord ? normSeal(lastRecord.newSealBattery) : '';
  
                    // ── Gas Tank Seals: Left & Right ───────────────────────
                    const tankSeals = ['Left','Right'].map(side => {
@@ -230,7 +308,343 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
                      const newV = s[nfk]||'';
                      const lastCode = side==='Left' ? lastL : lastR;
                      const isNoSeal  = oldV==='NO_SEAL';
-@@ -1446,51 +1456,50 @@ function renderRefillLog() {
+                     const isNoCap   = oldV==='NO_CAP';
+                     const isSpecial = isNoSeal||isNoCap;
+                     const matched   = !isSpecial && oldV && lastCode && oldV===lastCode;
+                     const mismatch  = !isSpecial && oldV && lastCode && oldV!==lastCode;
+ 
+                     const sBtn = (label, val, color, active) =>
+                       `<button onmousedown="rfSealOption('${fk}','${val}')"
+                         style="padding:3px 7px;font-size:8px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;white-space:nowrap;
+                         background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#444'}"
+                         onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+                         onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#444'}'">
+                         ${label}</button>`;
+ 
+                     return `<div style="background:#0d0d0d;border:1px solid ${mismatch?'#ef4444':matched?'#166534':'#1a1a1a'};border-radius:5px;padding:10px;transition:border-color .2s">
+ 
+                       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+@@ -881,67 +906,67 @@ function renderRefill() {
+                               ${matched?'border-color:#22c55e;background:#001208':mismatch?'border-color:#ef4444;background:#1a0000':''}">`
+                         }
+                         ${matched ? `<div style="margin-top:4px;font-size:9px;color:#4ade80;font-weight:600">✓ Seal matches — OK to refill</div>` : ''}
+                         ${mismatch ? `<div style="margin-top:4px;font-size:9px;color:#f87171;font-weight:600">⚠ Mismatch — check for tampering</div>` : ''}
+                       </div>
+ 
+                       <div style="display:flex;gap:4px;margin-bottom:7px">
+                         ${sBtn('No Seal','NO_SEAL','#f87171',isNoSeal)}
+                         ${sBtn('No Cap','NO_CAP','#fb923c',isNoCap)}
+                         ${isSpecial ? sBtn('Clear','CLEAR_'+side,'#888',false) : ''}
+                       </div>
+ 
+                       <div>
+                         <div style="font-size:8px;color:#333;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">New Seal — code applied after refill *</div>
+                         ${isSpecial
+                           ? `<div style="background:#111;border:1px solid #1e1e1e;border-radius:3px;padding:6px 10px;font-size:10px;color:#2a2a2a">N/A</div>`
+                           : `<input type="text" value="${newV}" placeholder="Enter new seal code…"
+                               oninput="rfSilent('${nfk}',this.value.toUpperCase())"
+                               style="font-size:12px;padding:7px 10px;letter-spacing:1px;font-family:monospace">`
+                         }
+                       </div>
+                     </div>`;
+                   }).join('');
+ 
+                   // ── Battery Box Seal ───────────────────────────────────
+-                  const battVal    = s.oldSealBattery||'';
+-                  const battOldIn  = s.battOldInput||'';          // typed old-seal when in CHANGE_MODE
++                  const battVal    = normSeal(s.oldSealBattery);
++                  const battOldIn  = normSeal(s.battOldInput);          // typed old-seal when in CHANGE_MODE
+                   const isNoChange = battVal==='NO_CHANGE';
+                   const isChangeMd = battVal==='CHANGE_MODE';
+                   const isNoSealB  = battVal==='NO_SEAL';
+                   const isTypedB   = battVal && !['NO_CHANGE','CHANGE_MODE','NO_SEAL'].includes(battVal);
+                   const isChangeB  = isChangeMd||isTypedB;
+ 
+                   // Effective old value for live validation
+                   const battOldEff = isNoChange ? lastB : isChangeMd ? battOldIn : isTypedB ? battVal : '';
+ 
+                   // Per-battery status
+                   let battStatus = '';
+                   if(isNoSealB) { battStatus = 'FAIL'; }
+                   else if(!lastRecord) { battStatus = lastB ? '' : 'FIRST FILL'; }
+                   else if(lastB && !battOldEff && (isChangeMd||isNoChange)) { battStatus = 'MISSING'; }
+-                  else if(battOldEff && lastB) { battStatus = battOldEff===lastB ? 'PASS' : 'FAIL'; }
++                  else if(battOldEff && lastB) { battStatus = normSeal(battOldEff)===normSeal(lastB) ? 'PASS' : 'FAIL'; }
+                   else if(!lastB && battOldEff) { battStatus = 'FIRST FILL'; }
+ 
+                   const battStatusColor = {PASS:'#4ade80',FAIL:'#f87171','FIRST FILL':'#38bdf8',MISSING:'#f59e0b'}[battStatus]||'';
+                   const battStatusBadge = battStatus
+                     ? `<span style="font-size:8px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:${battStatusColor}22;border:1px solid ${battStatusColor};color:${battStatusColor}">${battStatus}</span>` : '';
+ 
+                   const bBtn = (label, val, color, active) =>
+                     `<button onmousedown="rfSealOption('oldSealBattery','${val}')"
+                       style="flex:1;padding:5px 3px;font-size:9px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;
+                       background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#333'}"
+                       onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+                       onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#333'}'">
+                       ${label}</button>`;
+ 
+                   // Body depending on mode
+                   let battBody;
+                   if(isNoChange) {
+                     battBody = `<div style="background:#060e14;border:1px solid #1a3a5a;border-radius:3px;padding:9px 13px;display:flex;justify-content:space-between;align-items:center">
+                       <div>
+                         <div style="font-size:8px;color:#1a4060;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Seal Code (unchanged)</div>
+                         <span style="font-size:13px;color:#7dd3fc;font-weight:700;font-family:monospace;letter-spacing:2px">${lastB||'—'}</span>
+                       </div>
+                       <span style="font-size:8px;color:#1e3a5f;font-weight:700;letter-spacing:1px">🔒 UNCHANGED</span>
+                     </div>`;
+                   } else if(isNoSealB) {
+@@ -1145,69 +1170,69 @@ function rfUpdateMeter() {
+   if(!start || !end || !refill) { el.innerHTML=''; return; }
+   const meterDiff = end - start;
+   if(meterDiff === refill) {
+     el.innerHTML = `<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:7px 14px;font-size:11px;color:#4ade80">✓ Meter reading matches refill amount (${fmt(refill)} L)</div>`;
+   } else {
+     const diff = refill - meterDiff;
+     el.innerHTML = `<div style="background:#1a0800;border:1px solid #f59e0b;border-radius:4px;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+       <div style="font-size:11px;color:#fbbf24;font-weight:600">⚠ Meter vs Refill mismatch — will be flagged on Dashboard</div>
+       <div style="display:flex;gap:14px;font-size:10px;color:#666">
+         <span>Meter reading: <span style="color:#c0c0c0">${fmt(meterDiff)} L</span></span>
+         <span>Refill entered: <span style="color:#c0c0c0">${fmt(refill)} L</span></span>
+         <span style="color:${diff>0?'#f87171':'#4ade80'};font-weight:700">${diff>0?'+':''}${fmt(diff)} L</span>
+       </div>
+     </div>`;
+   }
+ }
+ 
+ function rfUpdateSeal() {
+   const f = state.refillForm || {};
+   if(!f.trainCode) return;
+   const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+   const el = document.getElementById('rf-sealcheck');
+ 
+   const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+ 
+-  const leftVal  = f.oldSealLeft||'';
+-  const rightVal = f.oldSealRight||'';
+-  const battRaw  = f.oldSealBattery||'';
++  const leftVal  = normSeal(f.oldSealLeft);
++  const rightVal = normSeal(f.oldSealRight);
++  const battRaw  = normSeal(f.oldSealBattery);
+   // For CHANGE_MODE, the verification input is stored in battOldInput
+-  const battEff  = battRaw==='NO_CHANGE' ? (lastRecord?.newSealBattery||'') :
+-                   battRaw==='CHANGE_MODE' ? (f.battOldInput||'') : battRaw;
++  const battEff  = battRaw==='NO_CHANGE' ? normSeal(lastRecord?.newSealBattery) :
++                   battRaw==='CHANGE_MODE' ? normSeal(f.battOldInput) : battRaw;
+ 
+   // Need at least oldSealLeft or oldSealRight typed to show badge
+   if(!leftVal && !rightVal) { if(el) el.innerHTML=''; return; }
+ 
+   let sealCheck;
+   if(!lastRecord) {
+     sealCheck = 'FIRST FILL';
+   } else if(isSpecial(leftVal)||isSpecial(rightVal)||isSpecial(battRaw)) {
+     sealCheck = 'FAIL';
+   } else {
+-    const lOk = !leftVal  || leftVal  === lastRecord.newSealLeft;
+-    const rOk = !rightVal || rightVal === lastRecord.newSealRight;
+-    const bOk = !battEff  || !lastRecord.newSealBattery || battEff === lastRecord.newSealBattery;
++    const lOk = !leftVal  || leftVal  === normSeal(lastRecord.newSealLeft);
++    const rOk = !rightVal || rightVal === normSeal(lastRecord.newSealRight);
++    const bOk = !battEff  || !normSeal(lastRecord.newSealBattery) || battEff === normSeal(lastRecord.newSealBattery);
+     // Only show PASS when both sides are filled
+     if(leftVal && rightVal) {
+       sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+     } else {
+       sealCheck = lOk && rOk ? '' : 'FAIL';
+     }
+   }
+ 
+   const sc = sealColor(sealCheck);
+   if(el) el.innerHTML = sealCheck
+     ? `<div class="seal-check-badge" style="background:${sealCheck==='PASS'?'#001208':sealCheck==='FIRST FILL'?'#001020':'#1a0000'};border:1px solid ${sc};color:${sc}">${sealCheck}</div>`
+     : '';
+ }
+ 
+ function rfSealOption(field, value) {
+   const f = state.refillForm || {};
+   const side = field.includes('Left') ? 'Left' : field.includes('Right') ? 'Right' : 'Battery';
+   const newField = side === 'Battery' ? 'newSealBattery' : `newSeal${side}`;
+   const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+ 
+   if(value === 'NO_CHANGE') {
+     // Battery only
+     const lastVal = lastRecord ? (lastRecord.newSealBattery||'') : '';
+     rfSilent(field, 'NO_CHANGE');
+     rfSilent(newField, lastVal);
+@@ -1222,110 +1247,113 @@ function rfSealOption(field, value) {
+     const s2 = value === 'CLEAR_Left' ? 'Left' : 'Right';
+     rfSilent(`oldSeal${s2}`, '');
+     rfSilent(`newSeal${s2}`, '');
+   } else {
+     // NO_SEAL, NO_CAP — sets both old and new
+     rfSilent(field, value);
+     rfSilent(newField, value);
+   }
+   rfUpdateSeal();
+   render();
+ }
+ 
+ 
+ function rfOpInput(v){
+   const code = v.replace(/^EM/i,'');
+   rfSilent('operator','EM'+code.toUpperCase());
+ }
+ 
+ function submitRefill() {
+   const f = state.refillForm || {};
+   const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+   const isBattSpecial = v => v==='NO_SEAL';
+ 
+   // Resolve battery seal mode to real code before saving
+   const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+-  const lastBattCode = lastRecord?.newSealBattery||'';
++  const lastBattCode = normSeal(lastRecord?.newSealBattery);
+ 
+   if(f.oldSealBattery==='NO_CHANGE') {
+     // Unchanged: old = new = previous code
+     const v = lastBattCode;
+     rfSilent('oldSealBattery', v); rfSilent('newSealBattery', v);
+     f.oldSealBattery = v; f.newSealBattery = v;
+   } else if(f.oldSealBattery==='CHANGE_MODE') {
+     // Changing: oldSealBattery ← battOldInput, newSealBattery already set
+-    const oldCode = f.battOldInput||'';
++    const oldCode = normSeal(f.battOldInput);
+     // Block if expected exists but old verify is blank (MISSING)
+     if(lastBattCode && !oldCode) {
+       alert('Battery seal: please enter the old seal code to verify before submitting.');
+       return;
+     }
+     rfSilent('oldSealBattery', oldCode); f.oldSealBattery = oldCode;
+-    if(!f.newSealBattery) { alert('Battery seal: please enter the new seal code.'); return; }
++    if(!normSeal(f.newSealBattery)) { alert('Battery seal: please enter the new seal code.'); return; }
+   } else if(!f.oldSealBattery && !lastRecord) {
+     // First fill typed in battOldInput (single input mode)
+-    const v = f.battOldInput||'';
++    const v = normSeal(f.battOldInput);
+     rfSilent('oldSealBattery', v); rfSilent('newSealBattery', v);
+     f.oldSealBattery = v; f.newSealBattery = v;
+   }
+ 
+   const required = ['date','trainCode','station','fuelType','operator','refillAmt','oldSealLeft','oldSealRight','oldSealBattery'];
+   if(!isSpecial(f.oldSealLeft))    required.push('newSealLeft');
+   if(!isSpecial(f.oldSealRight))   required.push('newSealRight');
+   if(!isBattSpecial(f.oldSealBattery)) required.push('newSealBattery');
+   const miss = required.filter(k=>!f[k]);
+   if(miss.length) { alert('Fill in: '+miss.join(', ')); return; }
+ 
+   let sealCheck = '';
+-  const leftSpecial  = isSpecial(f.oldSealLeft);
+-  const rightSpecial = isSpecial(f.oldSealRight);
+-  const battSpecial  = isSpecial(f.oldSealBattery);
+-  // For seal check, resolved battery value is already the real code (NO_CHANGE resolved above)
++  const leftSpecial  = isSpecial(normSeal(f.oldSealLeft));
++  const rightSpecial = isSpecial(normSeal(f.oldSealRight));
++  const battSpecial  = isSpecial(normSeal(f.oldSealBattery));
++  const batteryCheck = batterySealStatus(f.oldSealBattery, lastRecord?.newSealBattery);
+ 
+   if(!lastRecord) sealCheck='FIRST FILL';
+   else if(leftSpecial||rightSpecial||battSpecial) sealCheck='FAIL';
+   else {
+-    const lOk = f.oldSealLeft===lastRecord.newSealLeft;
+-    const rOk = f.oldSealRight===lastRecord.newSealRight;
+-    const bOk = !lastRecord.newSealBattery || f.oldSealBattery===lastRecord.newSealBattery;
++    const lOk = normSeal(f.oldSealLeft)===normSeal(lastRecord.newSealLeft);
++    const rOk = normSeal(f.oldSealRight)===normSeal(lastRecord.newSealRight);
++    const bOk = batteryCheck==='PASS' || batteryCheck==='FIRST FILL';
+     sealCheck = (lOk&&rOk&&bOk) ? 'PASS' : 'FAIL';
+   }
+ 
+   if(sealCheck==='FAIL') {
+     notify(`⚠ Seal mismatch recorded — ${f.trainCode} will appear on Dashboard`, 'err');
+   }
+ 
+   const totalAfter = (Number(f.fuelRemaining)||0)+(Number(f.refillAmt)||0);
+   const meterDiff = (Number(f.endOdo)||0) - (Number(f.startOdo)||0);
+   const meterMismatch = f.startOdo && f.endOdo && f.refillAmt && meterDiff !== Number(f.refillAmt);
+ 
+   if(meterMismatch) {
+     notify(`⚠ Meter mismatch: meter=${fmt(meterDiff)}L, refill=${fmt(Number(f.refillAmt))}L — flagged on Dashboard`, 'err');
+   }
+ 
++  f.oldSealBattery = normSeal(f.oldSealBattery);
++  f.newSealBattery = normSeal(f.newSealBattery);
++
+   const refillId = genRF();
+-  const rec = {...f, id:refillId, submittedAt:new Date().toISOString(), totalAfter, sealCheck,
++  const rec = {...f, id:refillId, submittedAt:new Date().toISOString(), totalAfter, sealCheck, batterySealCheck:batteryCheck,
+     meterMismatch: meterMismatch || false, meterDiff,
+     refillAmt:Number(f.refillAmt), fuelRemaining:Number(f.fuelRemaining),
+     startOdo:Number(f.startOdo)||0, endOdo:Number(f.endOdo)||0};
+   state.refills.push(rec);
+ 
+   // Log maintenance flags for NO_SEAL / NO_CAP
+   ['Left','Right','Battery'].forEach(side => {
+     const val = side==='Battery' ? f.oldSealBattery : f[`oldSeal${side}`];
+     if(val==='NO_SEAL'||val==='NO_CAP') {
+       const existing = state.maintenanceFlags.find(m=>m.trainCode===f.trainCode&&m.side===side&&m.issue===val&&!m.fixed);
+       if(!existing) {
+         state.maintenanceFlags.push({
+           id: 'MX-'+Date.now()+'-'+side,
+           trainCode: f.trainCode,
+           issue: val,
+           side,
+           detectedAt: f.date,
+           refillId,
+           fixed: false,
+           fixedAt: null,
+         });
+       }
+     }
+   });
+ 
+@@ -1405,92 +1433,95 @@ function renderRefillLog() {
+     const va = sortVal(a.r), vb = sortVal(b.r);
+     let cmp;
+     if(Array.isArray(va)) {
+       cmp = va[0] < vb[0] ? -1 : va[0] > vb[0] ? 1 : va[1] - vb[1];
+     } else if(typeof va === 'number') {
+       cmp = va - vb;
+     } else {
+       cmp = va < vb ? -1 : va > vb ? 1 : 0;
+     }
+     return dir==='asc' ? cmp : -cmp;
+   });
+ 
+   // Header helper
+   const th = (label, sortKey, extraStyle='') => {
+     const active = col===sortKey;
+     const arrow = active ? (dir==='asc'?'▲':'▼') : '';
+     return `<th onclick="logSetSort('${sortKey}')"
+       style="cursor:pointer;user-select:none;white-space:nowrap;${extraStyle}${active?'color:#f59e0b;':''}">
+       ${label}${arrow?`<span style="font-size:8px;margin-left:3px;color:#f59e0b">${arrow}</span>`:''}
+     </th>`;
+   };
+   const thPlain = (label, extraStyle='') => `<th style="${extraStyle}">${label}</th>`;
+ 
+   const rows = sorted.map(({r, i}) => {
+     const km = r.endOdo>r.startOdo ? r.endOdo-r.startOdo : null;
++    const prevRec = getPrevRecord(r.trainCode, r.date, i);
++    const liveBattStatus = batterySealStatus(r.oldSealBattery, prevRec?.newSealBattery);
++    const battStatus = r.batterySealCheck || liveBattStatus;
++    const battStatusColor = {PASS:'#4ade80',FAIL:'#f87171','FIRST FILL':'#38bdf8',MISSING:'#f59e0b'}[battStatus] || '#555';
+     const battOld = r.oldSealBattery==='NO_SEAL'
+       ? '<span style="color:#f87171;font-weight:700">NO SEAL</span>'
+       : r.oldSealBattery ? `<span style="color:#7dd3fc;font-family:monospace">${r.oldSealBattery}</span>` : '<span style="color:#333">—</span>';
+     const battNew = r.newSealBattery==='NO_SEAL'
+       ? '<span style="color:#f87171;font-weight:700">NO SEAL</span>'
+       : r.newSealBattery ? `<span style="color:#93c5fd;font-family:monospace">${r.newSealBattery}</span>` : '<span style="color:#333">—</span>';
+     return `<tr class="log-row" draggable="true"
+       ondragstart="logDragStart(event,${i})"
+       ondragend="logDragEnd(event)"
+       ondragover="logDragOver(event,${i})"
+       ondrop="logDrop(event,${i})"
+       style="cursor:grab;transition:background .1s">
+       <td style="color:#333;font-size:14px;text-align:center;cursor:grab;padding:0 6px" title="Drag to reorder">⠿</td>
+       <td style="color:#666;white-space:nowrap">${r.date}</td>
+       <td style="color:#f59e0b;font-weight:600">${r.trainCode}</td>
+       <td style="color:#7dd3fc;font-size:10px">${r.station}</td>
        <td style="color:#38bdf8;font-size:10px">${r.fuelType||'—'}</td>
        <td style="color:#c0c0c0;font-weight:600">${r.invoiceNo||'—'}</td>
        <td style="color:#555;text-align:right">${r.startOdo?fmt(r.startOdo):'—'}</td>
@@ -242,7 +656,8 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
        <td style="text-align:right;color:#999">${fmt(r.totalAfter)}</td>
        <td style="color:#555;font-size:10px">${r.oldSealLeft||'—'}</td>
        <td style="color:#555;font-size:10px">${r.oldSealRight||'—'}</td>
-       <td style="font-size:10px">${battOld}</td>
+-      <td style="font-size:10px">${battOld}</td>
++      <td style="font-size:10px">${battOld}<div style="margin-top:3px;font-size:8px;color:${battStatusColor};font-weight:700;letter-spacing:1px">${battStatus}</div></td>
        <td style="color:#777;font-size:10px">${r.newSealLeft||'—'}</td>
        <td style="color:#777;font-size:10px">${r.newSealRight||'—'}</td>
        <td style="font-size:10px">${battNew}</td>
@@ -282,7 +697,7 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
        <span style="color:#333;font-size:9px">⠿ Drag rows to reorder · Click column header to sort</span>
      </div>
      <style>
-@@ -1519,101 +1528,86 @@ function renderRefillLog() {
+@@ -1519,493 +1550,232 @@ function renderRefillLog() {
              ${thPlain('Old Bat')}
              ${thPlain('New L')}
              ${thPlain('New R')}
@@ -317,7 +732,8 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
    const prevRec = getPrevRecord(rec.trainCode, rec.date, idx);
    // If battery matches previous record → lock to NO_CHANGE display
    // Otherwise → enter CHANGE_MODE with battOldInput = saved old battery code
-   if(prevRec && rec.oldSealBattery && rec.oldSealBattery===prevRec.newSealBattery) {
+-  if(prevRec && rec.oldSealBattery && rec.oldSealBattery===prevRec.newSealBattery) {
++  if(prevRec && normSeal(rec.oldSealBattery) && normSeal(rec.oldSealBattery)===normSeal(prevRec.newSealBattery)) {
      rec.oldSealBattery = 'NO_CHANGE';
      rec.battOldInput = '';
    } else if(rec.oldSealBattery && !['NO_CHANGE','CHANGE_MODE','NO_SEAL'].includes(rec.oldSealBattery)) {
@@ -379,15 +795,18 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
    if(d.oldSealBattery==='NO_CHANGE') {
      const v = prev?.newSealBattery||''; d.oldSealBattery=v; d.newSealBattery=v;
    } else if(d.oldSealBattery==='CHANGE_MODE') {
-     const oldCode = d.battOldInput||'';
+-    const oldCode = d.battOldInput||'';
++    const oldCode = normSeal(d.battOldInput);
      const lastBatt = prev?.newSealBattery||'';
      if(lastBatt && !oldCode) { notify('Battery seal: enter old seal code to verify','err'); return; }
-     if(!d.newSealBattery)    { notify('Battery seal: enter new seal code','err'); return; }
+-    if(!d.newSealBattery)    { notify('Battery seal: enter new seal code','err'); return; }
++    if(!normSeal(d.newSealBattery))    { notify('Battery seal: enter new seal code','err'); return; }
      d.oldSealBattery = oldCode;
      // newSealBattery already set by erSet
    } else if(!d.oldSealBattery && !prev) {
      // First fill — single input stored in battOldInput
-     const v = d.battOldInput||'';
+-    const v = d.battOldInput||'';
++    const v = normSeal(d.battOldInput);
      d.oldSealBattery = v; d.newSealBattery = v;
    }
  
@@ -395,7 +814,99 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
    const isSpecialLR = v => v==='NO_SEAL'||v==='NO_CAP';
    if(!d.oldSealLeft)  { notify('Old Seal Left is required','err'); return; }
    if(!d.oldSealRight) { notify('Old Seal Right is required','err'); return; }
-@@ -1699,313 +1693,61 @@ function saveRefillEdit() {
+   if(!isSpecialLR(d.oldSealLeft)  && !d.newSealLeft)  { notify('New Seal Left is required','err'); return; }
+   if(!isSpecialLR(d.oldSealRight) && !d.newSealRight) { notify('New Seal Right is required','err'); return; }
+ 
+   // Recalculate derived fields
+   d.refillAmt = Number(d.refillAmt);
+   d.fuelRemaining = Number(d.fuelRemaining)||0;
+   d.totalAfter = d.fuelRemaining + d.refillAmt;
+   d.startOdo = Number(d.startOdo)||0;
+   d.endOdo = Number(d.endOdo)||0;
+   const meterDiff = d.endOdo - d.startOdo;
+   d.meterDiff = meterDiff;
+   d.meterMismatch = d.startOdo && d.endOdo && meterDiff !== d.refillAmt;
+ 
+   // Recalculate seal check (prev already computed above)
+   const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+   const last = prev; // same filtered list — record before this one
++  const batteryCheck = batterySealStatus(d.oldSealBattery, last?.newSealBattery);
++  d.batterySealCheck = batteryCheck;
+   if(!last) d.sealCheck = 'FIRST FILL';
+-  else if(isSpecial(d.oldSealLeft)||isSpecial(d.oldSealRight)||isSpecial(d.oldSealBattery)) d.sealCheck = 'FAIL';
++  else if(isSpecial(normSeal(d.oldSealLeft))||isSpecial(normSeal(d.oldSealRight))||isSpecial(normSeal(d.oldSealBattery))) d.sealCheck = 'FAIL';
+   else {
+-    const lOk = d.oldSealLeft===last.newSealLeft;
+-    const rOk = d.oldSealRight===last.newSealRight;
+-    const bOk = !last.newSealBattery || d.oldSealBattery===last.newSealBattery;
++    const lOk = normSeal(d.oldSealLeft)===normSeal(last.newSealLeft);
++    const rOk = normSeal(d.oldSealRight)===normSeal(last.newSealRight);
++    const bOk = batteryCheck==='PASS' || batteryCheck==='FIRST FILL';
+     d.sealCheck = (lOk&&rOk&&bOk) ? 'PASS' : 'FAIL';
+   }
+ 
+   if(isSpecial(d.oldSealLeft))    { d.newSealLeft    = d.oldSealLeft; }
+   if(isSpecial(d.oldSealRight))   { d.newSealRight   = d.oldSealRight; }
+   if(isSpecial(d.oldSealBattery)) { d.newSealBattery = d.oldSealBattery; }
+ 
++  d.oldSealBattery = normSeal(d.oldSealBattery);
++  d.newSealBattery = normSeal(d.newSealBattery);
+   state.refills[idx] = d;
+ 
+   // ── Cascade: recalculate every record for the affected train in date order ──
+   // Any record after (or on) the edited date may now have a different "previous record",
+   // so sealCheck, meterMismatch, totalAfter, and maintenance flags could all be stale.
+   const isSpecialV = v => v==='NO_SEAL'||v==='NO_CAP';
+   const affectedTrains = new Set([d.trainCode]);
+   // If the original record had a different trainCode, cascade that train too
+   if(state._editOrigTrainCode && state._editOrigTrainCode !== d.trainCode) {
+     affectedTrains.add(state._editOrigTrainCode);
+   }
+   state._editOrigTrainCode = null;
+ 
+   affectedTrains.forEach(tc => {
+     // Sort all records for this train by date, then by array index
+     const sorted = state.refills
+       .map((r, i) => ({r, i}))
+       .filter(({r}) => r.trainCode === tc)
+       .sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+ 
+     sorted.forEach(({r, i}, pos) => {
+       const prevR = pos > 0 ? sorted[pos - 1].r : null;
+ 
+       // Recalculate totalAfter
+       r.totalAfter = (Number(r.fuelRemaining)||0) + (Number(r.refillAmt)||0);
+ 
+       // Recalculate meterDiff / meterMismatch
+       const md = (Number(r.endOdo)||0) - (Number(r.startOdo)||0);
+       r.meterDiff = md;
+       r.meterMismatch = r.startOdo && r.endOdo && md !== Number(r.refillAmt);
+ 
+       // Recalculate sealCheck
++      const battCheck = batterySealStatus(r.oldSealBattery, prevR?.newSealBattery);
++      r.batterySealCheck = battCheck;
+       if(!prevR) {
+         r.sealCheck = 'FIRST FILL';
+-      } else if(isSpecialV(r.oldSealLeft)||isSpecialV(r.oldSealRight)||isSpecialV(r.oldSealBattery)) {
++      } else if(isSpecialV(normSeal(r.oldSealLeft))||isSpecialV(normSeal(r.oldSealRight))||isSpecialV(normSeal(r.oldSealBattery))) {
+         r.sealCheck = 'FAIL';
+       } else {
+-        const lOk = r.oldSealLeft  === prevR.newSealLeft;
+-        const rOk = r.oldSealRight === prevR.newSealRight;
+-        const bOk = !prevR.newSealBattery || r.oldSealBattery === prevR.newSealBattery;
++        const lOk = normSeal(r.oldSealLeft)  === normSeal(prevR.newSealLeft);
++        const rOk = normSeal(r.oldSealRight) === normSeal(prevR.newSealRight);
++        const bOk = battCheck==='PASS' || battCheck==='FIRST FILL';
+         r.sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+       }
+ 
+       // Propagate special seal values to newSeal fields
+       if(isSpecialV(r.oldSealLeft))    r.newSealLeft    = r.oldSealLeft;
+       if(isSpecialV(r.oldSealRight))   r.newSealRight   = r.oldSealRight;
+       if(isSpecialV(r.oldSealBattery)) r.newSealBattery = r.oldSealBattery;
+ 
+       state.refills[i] = r;
+     });
  
      // Rebuild maintenance flags for this train from scratch
      state.maintenanceFlags = state.maintenanceFlags.filter(m => m.trainCode !== tc);
@@ -712,6 +1223,71 @@ index d9f33f8c33870664419d1baf4bf0e2c17c86e17a..e9406e1556a2e3d97b462a4e64e47f9c
          </div>
          ${fieldHTML('Request Date *',`<input type="date" value="${f.requestDate}" onchange="reqSet('requestDate',this.value)">`)}
          ${fieldHTML('Notes (optional)',`<textarea rows="3" placeholder="Additional info…" style="resize:vertical" oninput="reqSet('notes',this.value)">${f.notes}</textarea>`)}
+@@ -2914,58 +2684,60 @@ function buildSharedFormHTML(mode, {webhook, stations, fuelTypes, trains}) {
+   </div>
+   </body></html>`;
+ }
+ 
+ 
+ 
+ // ── Recalculate All ───────────────────────────────────────────────────────
+ function recalculateAll() {
+   const isSpecialV = v => v==='NO_SEAL'||v==='NO_CAP';
+   const allTrains = [...new Set(state.refills.map(r => r.trainCode))];
+ 
+   allTrains.forEach(tc => {
+     const sorted = state.refills
+       .map((r, i) => ({r, i}))
+       .filter(({r}) => r.trainCode === tc)
+       .sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+ 
+     sorted.forEach(({r, i}, pos) => {
+       const prevR = pos > 0 ? sorted[pos - 1].r : null;
+ 
+       r.totalAfter = (Number(r.fuelRemaining)||0) + (Number(r.refillAmt)||0);
+       const md = (Number(r.endOdo)||0) - (Number(r.startOdo)||0);
+       r.meterDiff = md;
+       r.meterMismatch = r.startOdo && r.endOdo && md !== Number(r.refillAmt);
+ 
++      const battCheck = batterySealStatus(r.oldSealBattery, prevR?.newSealBattery);
++      r.batterySealCheck = battCheck;
+       if(!prevR) {
+         r.sealCheck = 'FIRST FILL';
+-      } else if(isSpecialV(r.oldSealLeft)||isSpecialV(r.oldSealRight)||isSpecialV(r.oldSealBattery)) {
++      } else if(isSpecialV(normSeal(r.oldSealLeft))||isSpecialV(normSeal(r.oldSealRight))||isSpecialV(normSeal(r.oldSealBattery))) {
+         r.sealCheck = 'FAIL';
+       } else {
+-        const lOk = r.oldSealLeft  === prevR.newSealLeft;
+-        const rOk = r.oldSealRight === prevR.newSealRight;
+-        const bOk = !prevR.newSealBattery || r.oldSealBattery === prevR.newSealBattery;
++        const lOk = normSeal(r.oldSealLeft)  === normSeal(prevR.newSealLeft);
++        const rOk = normSeal(r.oldSealRight) === normSeal(prevR.newSealRight);
++        const bOk = battCheck==='PASS' || battCheck==='FIRST FILL';
+         r.sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+       }
+ 
+       if(isSpecialV(r.oldSealLeft))    r.newSealLeft    = r.oldSealLeft;
+       if(isSpecialV(r.oldSealRight))   r.newSealRight   = r.oldSealRight;
+       if(isSpecialV(r.oldSealBattery)) r.newSealBattery = r.oldSealBattery;
+ 
+       state.refills[i] = r;
+     });
+ 
+     // Rebuild maintenance flags for this train
+     state.maintenanceFlags = state.maintenanceFlags.filter(m => m.trainCode !== tc);
+     sorted.forEach(({r}) => {
+       ['Left','Right','Battery'].forEach(side => {
+         const val = side==='Battery' ? r.oldSealBattery : r[`oldSeal${side}`];
+         if(isSpecialV(val)) {
+           const existing = state.maintenanceFlags.find(m =>
+             m.trainCode===tc && m.side===side && m.issue===val && !m.fixed
+           );
+           if(!existing) {
+             state.maintenanceFlags.push({
+               id: 'MX-'+Date.now()+'-'+side+'-'+r.id,
+               trainCode: tc, issue: val, side,
+               detectedAt: r.date, refillId: r.id,
+               fixed: false, fixedAt: null,
  
 EOF
 )
