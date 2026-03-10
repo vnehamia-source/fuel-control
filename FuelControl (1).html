@@ -1,0 +1,3110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FuelControl — Integrated Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080808;color:#e2e8f0;font-family:'DM Mono','Courier New',monospace;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
+input,select,textarea{background:#0d0d0d;color:#e2e8f0;border:1px solid #222;border-radius:4px;padding:8px 12px;font-family:inherit;font-size:12px;width:100%;outline:none;transition:border-color .15s;box-sizing:border-box;min-width:0;text-overflow:ellipsis}
+input[type="date"],input[type="date"]::-webkit-calendar-picker-indicator{color-scheme:dark;cursor:pointer;filter:invert(0.6)}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{filter:invert(1)}
+input:focus,select:focus,textarea:focus{border-color:#f59e0b;box-shadow:0 0 0 2px #f59e0b18}
+select option{background:#0d0d0d}
+button{cursor:pointer;font-family:inherit}
+.fade-in{animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+#topbar{background:#0c0c0c;border-bottom:1px solid #1c1c1c;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12}
+#logo-area{display:flex;align-items:center;gap:14;padding:12px 0}
+.dot-amber{width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 10px #f59e0b88;display:inline-block}
+.dot-red{width:5px;height:5px;border-radius:50%;background:#ef4444;opacity:.6;display:inline-block}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:#fff}
+#export-btn{background:#0d1f0d;border:1px solid #22c55e;color:#4ade80;padding:7px 16px;border-radius:4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:7px;transition:all .2s;white-space:nowrap}
+#export-btn:hover{background:#22c55e;color:#000}
+.backup-btn{background:#0d1020;border:1px solid #6366f1;color:#818cf8;padding:7px 14px;border-radius:4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;cursor:pointer}
+.backup-btn:hover{background:#6366f1;color:#fff}
+.share-btn{background:#1a0d20;border:1px solid #a855f7;color:#c084fc;padding:7px 14px;border-radius:4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;cursor:pointer}
+.share-btn:hover{background:#a855f7;color:#fff}
+#navbar{background:#0c0c0c;border-bottom:1px solid #1c1c1c;padding:0 20px;display:flex;overflow-x:auto}
+.nav-btn{background:none;border:none;padding:11px 14px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;color:#444;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.nav-btn.active{color:#f59e0b;border-bottom-color:#f59e0b}
+.nav-btn.highlight{color:#38bdf8;text-shadow:0 0 10px #38bdf888}
+.nav-btn.highlight:hover{color:#7dd3fc;text-shadow:0 0 16px #38bdf8cc}
+.nav-btn.highlight.active{color:#f59e0b;text-shadow:none;border-bottom-color:#f59e0b}
+#content{padding:24px 20px;max-width:1300px;margin:0 auto}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:17px}
+.section-title.small{font-size:15px;margin-bottom:11px}
+.field-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;margin-bottom:5px}
+.card{background:#111;border:1px solid #1e1e1e;border-radius:6px}
+.kpi-card{background:#111;border:1px solid #1c1c1c;border-radius:6px;padding:15px 16px;cursor:default;transition:border-color .2s}
+.kpi-card.clickable{cursor:pointer}
+.kpi-card:hover.clickable{border-color:var(--accent)}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:#fff;line-height:1}
+.kpi-label{font-size:9px;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:6px}
+.kpi-sub{font-size:9px;color:#333;margin-top:4px}
+.btn-primary{background:#f59e0b;color:#000;border:none;padding:12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;width:100%;transition:all .2s}
+.btn-primary:hover{background:#fbbf24}
+.btn-primary:disabled{background:#1a1a1a;color:#333;cursor:not-allowed}
+.btn-approve{background:#0ea5e9;color:#fff;border:none;padding:5px 12px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;border-radius:3px;font-weight:700}
+.badge{display:inline-block;padding:3px 10px;border-radius:3px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
+.seal-badge{font-size:9px;letter-spacing:1.5px;text-transform:uppercase}
+.period-bar{display:flex;gap:2px;background:#111;border:1px solid #1e1e1e;border-radius:6px;padding:3px}
+.period-btn{background:none;color:#555;border:none;padding:6px 14px;border-radius:4px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:400;transition:all .2s}
+.period-btn.active{background:#f59e0b;color:#000;font-weight:700}
+.filter-period-btn{background:none;color:#555;border:none;padding:5px 10px;border-radius:3px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:400;transition:all .2s}
+.filter-period-btn.active{background:#f59e0b;color:#000;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:9px 11px;text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;white-space:nowrap;font-weight:400}
+td{padding:7px 11px}
+tr{border-bottom:1px solid #141414}
+tr:hover td{background:#141414}
+.bar-track{background:#1a1a1a;border-radius:2px;height:3px}
+.bar-fill{height:3px;border-radius:2px;transition:width .6s ease}
+.bar-fill-2{height:2px;border-radius:2px}
+.success-banner{background:#001208;border:1px solid #22c55e;border-radius:5px;padding:13px;margin-bottom:18px;display:flex;align-items:center;gap:12}
+.toast{position:fixed;bottom:24px;right:24px;padding:11px 18px;border-radius:5px;font-size:11px;z-index:9999;box-shadow:0 8px 32px #000a;animation:slideIn .25s ease}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;align-items:start}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:13px;align-items:start}
+.grid-2>*,.grid-3>*,.grid-4>*{min-width:0}
+.empty-state{padding:34px;text-align:center;color:#2a2a2a;font-size:12px;letter-spacing:1px}
+.seal-section{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:5px;padding:14px;margin-bottom:13px}
+.seal-check-badge{padding:3px 11px;border-radius:3px;font-size:9px;letter-spacing:2px;font-weight:700;text-transform:uppercase}
+.last-seals{background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:7px 12px;margin-bottom:11px;font-size:11px;color:#444;display:flex;gap:18px;flex-wrap:wrap}
+.total-after-display{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:7px 12px;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#2a2a2a}
+.total-after-display.has-value{color:#f59e0b}
+.inv-input{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:3px;color:#f59e0b;text-align:right;width:100px;padding:4px 8px;font-family:inherit;font-size:12px}
+tfoot tr{border-top:2px solid #1e1e1e}
+.hidden{display:none}
+.order-card{background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:13px 17px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;margin-bottom:10px}
+.order-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:11px}
+.metric-label{font-size:9px;color:#333;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.metric-val{font-size:11px;color:#888}
+.metric-val.big{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700}
+.tab-bar{display:flex;margin-bottom:18px;border-bottom:1px solid #1e1e1e}
+.tab-btn{background:none;border:none;padding:9px 14px;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#444;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn.active{color:#f59e0b;border-bottom-color:#f59e0b}
+.station-stock-card{background:#111;border:1px solid #1c1c1c;border-radius:5px;padding:11px 14px;margin-bottom:8px}
+.stock-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.stock-name{font-size:11px;color:#c0c0c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:10px}
+.stock-vals{display:flex;gap:12px;align-items:center;flex-shrink:0}
+.stock-disp{font-size:10px;color:#f87171}
+.stock-val{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:11px;margin-bottom:22px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="logo-area">
+    <div style="display:flex;gap:5px;align-items:center"><span class="dot-amber"></span><span class="dot-red"></span></div>
+    <span class="logo-text">FuelControl</span>
+    <span style="font-size:9px;letter-spacing:2px;color:#252525;text-transform:uppercase">Integrated Operations</span>
+  </div>
+  <button class="share-btn" onclick="setView('share')">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Share Forms
+  </button>
+  <button class="backup-btn" onclick="saveBackup()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Save Backup
+  </button>
+  <button class="backup-btn" onclick="document.getElementById('restore-input').click()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Load Backup
+  </button>
+  <input type="file" id="restore-input" accept=".json" style="display:none" onchange="loadBackup(this)">
+  <button id="export-btn" onclick="handleExport()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export Excel
+  </button>
+</div>
+
+<!-- NAV -->
+<div id="navbar">
+  <button class="nav-btn active" onclick="setView('dashboard')">Dashboard</button>
+  <button class="nav-btn highlight" onclick="setView('refill')">⛽ Fuel Refill</button>
+  <button class="nav-btn" onclick="setView('refilllog')">Refill Log</button>
+  <button class="nav-btn" onclick="setView('inventory')">Inventory</button>
+  <button class="nav-btn highlight" onclick="setView('request')">New Request</button>
+  <button class="nav-btn" onclick="setView('orders')">Orders</button>
+  <button class="nav-btn" onclick="setView('grn')">Goods Received</button>
+  <button class="nav-btn" onclick="setView('trains')">🚂 Trains</button>
+  <button class="nav-btn" onclick="setView('fueltypes')">⛽ Fuel Types</button>
+  <button class="nav-btn" onclick="setView('stations')">📍 Stations</button>
+</div>
+
+<!-- CONTENT -->
+<div id="content"></div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const DEFAULT_STATIONS = ["Fuel Phnom Penh","Fuel PK12","Fuel DryPort","Fuel SHV","Fuel BTB","Fuel Tela Bat Deung"];
+const DEFAULT_FUEL_TYPES = ["Diesel","Petroleum","LPG"];
+const DEFAULT_TRAINS = ["DMU 803","KM6868","183-1555","183-9561","183-1503","183-4558","6657","Loco Depot","6640","6575","6535","6428","DMU1035","6375","6561","BB-1011","6343","Bde 411","6663","6633","6546","6675","6697","BB-1012","BB-1060","1038","1035","183-4559","6699","6725","6685"];
+const PERIODS = ["Daily","Weekly","Monthly","Yearly"];
+const invKey = (s,f) => s+'||'+f;
+
+// State
+let state = {
+  view: 'dashboard',
+  dashPeriod: 'Monthly', dashFrom:'', dashTo:'',
+  logPeriod: 'All', logStation: '', logTrain: '', logFuelType:'', logFrom:'', logTo:'',
+  ordersTab: 'All',
+  invFuelTab: 'Diesel',
+  refills: [],
+  orders: [],
+  inventory: {},
+  trains: [...DEFAULT_TRAINS],
+  fuelTypes: [...DEFAULT_FUEL_TYPES],
+  stations: [...DEFAULT_STATIONS],
+  invoicePrefixes: {
+    'Fuel Phnom Penh':'L-',
+    'Fuel PK12':'PK12-',
+    'Fuel SHV':'ST-',
+    'Fuel DryPort':'Tela-',
+    'Fuel BTB':'B-',
+    'Fuel Tela Bat Deung':'Tela-BD-',
+  },
+  stationMaxLitres: {},
+  savedRefill: null,
+  savedRequest: false,
+  editRefillIdx: null,
+  editRefillData: null,
+  editOrderIdx: null,
+  editOrderData: null,
+  editStationIdx: null,
+  shareConfig: { apiKey:'', refillBinId:'', requestBinId:'', lastSync:null },
+  maintenanceFlags: [],
+  showMaintenanceLog: false,
+  logSort: 'invoiceNo',
+  logSortDir: 'asc',
+};
+
+// Load from localStorage
+try {
+  const r = localStorage.getItem('fc_refills'); if(r) state.refills = JSON.parse(r);
+  const o = localStorage.getItem('fc_orders'); if(o) state.orders = JSON.parse(o);
+  const i = localStorage.getItem('fc_inventory'); if(i) state.inventory = JSON.parse(i);
+  const t = localStorage.getItem('fc_trains'); if(t) state.trains = JSON.parse(t);
+  const ft = localStorage.getItem('fc_fuelTypes'); if(ft) state.fuelTypes = JSON.parse(ft);
+  const st = localStorage.getItem('fc_stations'); if(st) state.stations = JSON.parse(st);
+  const ip = localStorage.getItem('fc_invoicePrefixes'); if(ip) state.invoicePrefixes = JSON.parse(ip);
+  const ml = localStorage.getItem('fc_stationMaxLitres'); if(ml) state.stationMaxLitres = JSON.parse(ml);
+  const sc = localStorage.getItem('fc_shareConfig'); if(sc) state.shareConfig = JSON.parse(sc);
+  const mf = localStorage.getItem('fc_maintenanceFlags'); if(mf) state.maintenanceFlags = JSON.parse(mf);
+} catch(e) {}
+
+function save() {
+  try {
+    localStorage.setItem('fc_refills', JSON.stringify(state.refills));
+    localStorage.setItem('fc_orders', JSON.stringify(state.orders));
+    localStorage.setItem('fc_inventory', JSON.stringify(state.inventory));
+    localStorage.setItem('fc_trains', JSON.stringify(state.trains));
+    localStorage.setItem('fc_fuelTypes', JSON.stringify(state.fuelTypes));
+    localStorage.setItem('fc_stations', JSON.stringify(state.stations));
+    localStorage.setItem('fc_invoicePrefixes', JSON.stringify(state.invoicePrefixes));
+    localStorage.setItem('fc_stationMaxLitres', JSON.stringify(state.stationMaxLitres));
+    localStorage.setItem('fc_shareConfig', JSON.stringify(state.shareConfig));
+    localStorage.setItem('fc_maintenanceFlags', JSON.stringify(state.maintenanceFlags));
+  } catch(e) {}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const fmt = n => Number(n||0).toLocaleString();
+const today = () => new Date().toISOString().split('T')[0];
+const genOrd = () => { const d=new Date(); return `ORD-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`; };
+const genRF = () => `RF-${Date.now()}`;
+
+function dispensedFor(station, fuelType) {
+  return state.refills.filter(r=>r.station===station&&r.fuelType===fuelType).reduce((a,r)=>a+Number(r.refillAmt||0),0);
+}
+function dispensedForStation(station) {
+  return state.refills.filter(r=>r.station===station).reduce((a,r)=>a+Number(r.refillAmt||0),0);
+}
+function getInv(station, fuelType) {
+  return state.inventory[invKey(station,fuelType)] || {beginStock:0,received:0};
+}
+function endingStock(station, fuelType) {
+  const inv = getInv(station, fuelType);
+  return Number(inv.beginStock)+Number(inv.received)-dispensedFor(station, fuelType);
+}
+function endingStockStation(station) {
+  return state.fuelTypes.reduce((a,f)=>a+endingStock(station,f), 0);
+}
+
+function inRange(dateStr, from, to) {
+  if(!dateStr) return false;
+  if(!from && !to) return true;
+  const d = dateStr; // 'YYYY-MM-DD' string comparison works directly
+  if(from && to) return d >= from && d <= to;
+  if(from) return d >= from;
+  if(to) return d <= to;
+  return true;
+}
+function inPeriod(dateStr, period) {
+  if(!dateStr || period==='All') return true;
+  const d = new Date(dateStr); const ref = new Date();
+  if(period==='Daily') return dateStr===ref.toISOString().split('T')[0];
+  if(period==='Weekly') { const s=new Date(ref); s.setDate(ref.getDate()-ref.getDay()); s.setHours(0,0,0,0); const e=new Date(s); e.setDate(s.getDate()+6); e.setHours(23,59,59,999); return d>=s&&d<=e; }
+  if(period==='Monthly') return d.getFullYear()===ref.getFullYear()&&d.getMonth()===ref.getMonth();
+  if(period==='Yearly') return d.getFullYear()===ref.getFullYear();
+  return true;
+}
+
+function periodLabel(period) {
+  const now=new Date();
+  if(period==='Daily') return now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  if(period==='Weekly') { const s=new Date(now); s.setDate(now.getDate()-now.getDay()); const e=new Date(s); e.setDate(s.getDate()+6); return `${s.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} – ${e.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`; }
+  if(period==='Monthly') return now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  if(period==='Yearly') return String(now.getFullYear());
+  return '';
+}
+
+// Returns the most recent refill record for a train before a given date (sorted by date, then insertion order).
+// beforeDate: only consider records with date < beforeDate. If omitted → latest overall.
+// excludeIdx: skip this array index (used in edit modal so a record isn't its own predecessor).
+function getPrevRecord(trainCode, beforeDate, excludeIdx) {
+  let recs = state.refills
+    .map((r, i) => ({r, i}))
+    .filter(({r, i}) => r.trainCode === trainCode && (excludeIdx == null || i !== excludeIdx));
+  recs.sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+  const candidates = beforeDate ? recs.filter(({r}) => r.date < beforeDate) : recs;
+  return candidates.length ? candidates[candidates.length - 1].r : null;
+}
+
+function sealColor(check) {
+  return {PASS:'#4ade80','FIRST FILL':'#7dd3fc',FAIL:'#f87171'}[check]||'#555';
+}
+function sealBadgeHTML(check) {
+  if(!check) return '';
+  return `<span class="seal-badge" style="color:${sealColor(check)}">● ${check}</span>`;
+}
+function statusBadgeHTML(status) {
+  const c = {Pending:{bg:'#1a1200',border:'#f59e0b',text:'#fbbf24'},Approved:{bg:'#001020',border:'#38bdf8',text:'#7dd3fc'},Delivered:{bg:'#001508',border:'#22c55e',text:'#4ade80'}}[status]||{bg:'#111',border:'#333',text:'#888'};
+  return `<span class="badge" style="background:${c.bg};border:1px solid ${c.border};color:${c.text}">${status}</span>`;
+}
+function periodBarHTML(active, fn, includeAll=false, fromKey='', toKey='', fromVal='', toVal='', periodKey='') {
+  const items = includeAll ? ['All',...PERIODS] : PERIODS;
+  const cls = includeAll ? 'filter-period-btn' : 'period-btn';
+  const presets = `<div style="${includeAll?'display:flex;gap:2px;background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:2px':''}">
+    ${items.map(p=>`<button class="${cls}${active===p?' active':''}" onclick="${fn}('${p}')">${p}</button>`).join('')}
+  </div>`;
+  if(!fromKey) return presets;
+  const dateStyle = 'background:#0d0d0d;color:#e2e8f0;border:1px solid #2a2a2a;border-radius:4px;padding:5px 8px;font-family:inherit;font-size:10px;width:136px;outline:none;cursor:pointer;color-scheme:dark';
+  const dateRange = `<div style="display:flex;align-items:center;gap:6px;background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:4px 10px">
+    <span style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;white-space:nowrap">From</span>
+    <input type="date" value="${fromVal}" style="${dateStyle}" onchange="state.${fromKey}=this.value;state.${periodKey}='Custom';render()">
+    <span style="font-size:9px;color:#333">—</span>
+    <span style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;white-space:nowrap">To</span>
+    <input type="date" value="${toVal}" style="${dateStyle}" onchange="state.${toKey}=this.value;state.${periodKey}='Custom';render()">
+    ${(fromVal||toVal)?`<button onclick="state.${fromKey}='';state.${toKey}='';state.${periodKey}='All';render()" style="background:none;border:none;color:#555;font-size:14px;cursor:pointer;padding:0 4px;line-height:1" title="Clear dates">✕</button>`:''}
+  </div>`;
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${presets}${dateRange}</div>`;
+}
+function fieldHTML(label, inputHTML) {
+  return `<div><div class="field-label">${label}</div>${inputHTML}</div>`;
+}
+
+function notify(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = (type==='err'?'✕ ':'✓ ') + msg;
+  el.style.background = type==='err'?'#1a0000':'#001208';
+  el.style.border = `1px solid ${type==='err'?'#ef4444':'#22c55e'}`;
+  el.style.color = type==='err'?'#f87171':'#4ade80';
+  el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'), 3500);
+}
+
+// ── Router ────────────────────────────────────────────────────────────────
+function setView(v) {
+  state.view = v;
+  state.editRefillIdx = null; state.editRefillData = null;
+  state.editOrderIdx = null; state.editOrderData = null;
+  state.editStationIdx = null;
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    const views=['dashboard','refill','refilllog','inventory','request','orders','grn','trains','fueltypes','stations','share'];
+    b.classList.toggle('active', views[i]===v);
+  });
+  render();
+}
+
+function render() {
+  const el = document.getElementById('content');
+  el.className = 'fade-in';
+  el.innerHTML = '';
+  const views = {
+    dashboard: renderDashboard,
+    refill: renderRefill,
+    refilllog: renderRefillLog,
+    inventory: renderInventory,
+    request: renderRequest,
+    orders: renderOrders,
+    grn: renderGRN,
+    trains: renderTrains,
+    fueltypes: renderFuelTypes,
+    stations: renderStations,
+    share: renderShare,
+  };
+  el.innerHTML = (views[state.view]||renderDashboard)();
+  // Void el to force reflow for animation
+  el.offsetHeight;
+  attachHandlers();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const p = state.dashPeriod;
+  const fRef = state.refills.filter(r=> p==='Custom' ? inRange(r.date,state.dashFrom,state.dashTo) : inPeriod(r.date,p));
+  const fOrd = state.orders.filter(o=> p==='Custom' ? inRange(o.requestDate,state.dashFrom,state.dashTo) : inPeriod(o.requestDate,p));
+  const pDisp = fRef.reduce((a,r)=>a+Number(r.refillAmt||0),0);
+  const totalEnd = state.stations.reduce((a,s)=>a+endingStockStation(s),0);
+  const sealFails = fRef.filter(r=>r.sealCheck==='FAIL').length;
+
+  // Train usage
+  const tmap = {};
+  fRef.forEach(r=>{ tmap[r.trainCode]=(tmap[r.trainCode]||0)+Number(r.refillAmt||0); });
+  const trainUsage = Object.entries(tmap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // Station dispensed
+  const stUsage = state.stations.map(s=>({s,d:fRef.filter(r=>r.station===s).reduce((a,r)=>a+Number(r.refillAmt||0),0),c:fRef.filter(r=>r.station===s).length})).filter(x=>x.d>0).sort((a,b)=>b.d-a.d);
+
+  const openMaintenance = state.maintenanceFlags.filter(m=>!m.fixed).length;
+  const kpis = [
+    {l:'Fleet Stock',v:`${fmt(totalEnd)} L`,a:'#f59e0b',s:'current total'},
+    {l:'Fuel Dispensed',v:`${fmt(pDisp)} L`,a:'#ef4444',s:`${fRef.length} refill${fRef.length!==1?'s':''}`},
+    {l:'Seal Failures',v:sealFails,a:sealFails>0?'#ef4444':'#22c55e',s:sealFails===0?'all clear':'this period'},
+    {l:'Maintenance',v:openMaintenance,a:openMaintenance>0?'#fb923c':'#22c55e',s:openMaintenance===0?'all clear':'trains need fix'},
+    {l:'Pending',v:fOrd.filter(o=>o.status==='Pending').length,a:'#f59e0b',fn:"setView('orders')"},
+    {l:'Approved',v:fOrd.filter(o=>o.status==='Approved').length,a:'#38bdf8',fn:"setView('orders')"},
+    {l:'Delivered',v:fOrd.filter(o=>o.status==='Delivered').length,a:'#22c55e',fn:"setView('orders')"},
+  ];
+
+  const recentRows = [...fRef].reverse().slice(0,10).map(r=>`
+    <tr>
+      <td style="color:#555">${r.date}</td>
+      <td style="color:#f59e0b;font-weight:600">${r.trainCode}</td>
+      <td style="color:#7dd3fc;font-size:10px">${r.station}</td>
+      <td style="color:#888">${r.operator}</td>
+      <td style="font-weight:700;color:#ef4444;font-family:'Barlow Condensed',sans-serif;font-size:15px">${fmt(r.refillAmt)}</td>
+      <td>${sealBadgeHTML(r.sealCheck)}</td>
+    </tr>`).join('');
+
+  const trainRows = trainUsage.length===0
+    ? `<div class="empty-state">No refill data this ${p.toLowerCase()}</div>`
+    : trainUsage.map(([t,l],i)=>{
+      const mx=trainUsage[0][1];
+      return `<div style="padding:9px 14px;border-bottom:1px solid #141414;display:flex;align-items:center;gap:11px">
+        <div style="width:16px;font-size:9px;color:#2a2a2a;flex-shrink:0">${i+1}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:11px;color:#c0c0c0;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t}</div>
+        <div class="bar-track"><div class="bar-fill-2" style="width:${(l/mx)*100}%;background:#f59e0b"></div></div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#f59e0b;flex-shrink:0">${fmt(l)}<span style="font-size:9px;color:#333;font-weight:400"> L</span></div>
+      </div>`;
+    }).join('');
+
+  const stRows = stUsage.map(({s,d,c})=>{
+    const mx=stUsage[0].d;
+    return `<div style="padding:9px 14px;border-bottom:1px solid #141414;display:flex;align-items:center;gap:11px">
+      <div style="flex:1;min-width:0"><div style="font-size:10px;color:#888;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s}</div>
+      <div class="bar-track"><div class="bar-fill-2" style="width:${(d/mx)*100}%;background:#ef4444"></div></div></div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#ef4444">${fmt(d)}<span style="font-size:9px;color:#333"> L</span></div>
+        <div style="font-size:9px;color:#333">${c} refill${c!==1?'s':''}</div>
+      </div></div>`;
+  }).join('');
+
+  const stationCards = state.stations.map(s=>{
+    const e=endingStockStation(s);
+    const maxL = state.stationMaxLitres[s] || 0;
+    const cap = maxL > 0 ? maxL : Math.max(state.fuelTypes.reduce((a,f)=>{const inv=getInv(s,f);return a+Number(inv.beginStock)+Number(inv.received);},0), 1);
+    const pct=Math.min(100,Math.max(0,(e/cap)*100));
+    const c=pct>40?'#22c55e':pct>15?'#f59e0b':'#ef4444';
+    const pd=fRef.filter(r=>r.station===s).reduce((a,r)=>a+Number(r.refillAmt||0),0);
+    const refillCount = fRef.filter(r=>r.station===s).length;
+    const orderCount = state.orders.filter(o=>o.station===s).length;
+    return {s,e,maxL,pct,c,pd,refillCount,orderCount};
+  }).sort((a,b)=>b.pd-a.pd).map(({s,e,maxL,pct,c,pd,refillCount,orderCount})=>
+    `<div class="station-stock-card">
+      <div class="stock-row">
+        <div class="stock-name">${s}</div>
+        <div class="stock-vals">
+          ${pd>0?`<div class="stock-disp">-${fmt(pd)}L</div>`:''}
+          <div style="text-align:right">
+            <div class="stock-val" style="color:${c}">${fmt(e)}<span style="font-size:9px;color:#333;font-weight:400"> L</span>${maxL>0?`<span style="font-size:9px;color:#2a2a2a"> / ${fmt(maxL)}L</span>`:''}</div>
+            ${maxL>0?`<div style="font-size:11px;font-weight:700;color:${c};font-family:'Barlow Condensed',sans-serif;letter-spacing:1px">${pct.toFixed(1)}%</div>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="bar-track" style="height:5px;margin-top:6px"><div class="bar-fill" style="height:5px;width:${pct}%;background:${c}"></div></div>
+      <div style="display:flex;gap:14px;margin-top:7px;padding-top:7px;border-top:1px solid #161616">
+        <div style="font-size:10px;color:#444">Refills: <span style="color:#888;font-weight:600">${refillCount}</span></div>
+        <div style="font-size:10px;color:#444">Orders: <span style="color:#888;font-weight:600">${orderCount}</span></div>
+      </div>
+    </div>`
+  ).join('');
+
+  // Seal failure alerts — all FAIL records with mismatch details
+  const sealFailRecords = state.refills.filter(r=>r.sealCheck==='FAIL');
+  let sealAlertsHTML = '';
+  if(sealFailRecords.length>0){
+    const sealRows = [...sealFailRecords].reverse().map(r=>{
+      // Find the previous record for this train to show what was expected
+      const idx = state.refills.indexOf(r);
+      const prev = getPrevRecord(r.trainCode, r.date, idx);
+      const leftMatch = prev && r.oldSealLeft===prev.newSealLeft;
+      const rightMatch = prev && r.oldSealRight===prev.newSealRight;
+      return `<div style="padding:10px 16px;border-bottom:1px solid #161616">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:7px">
+          <div style="font-size:9px;color:#333;flex-shrink:0">${r.date}</div>
+          <div style="color:#f59e0b;font-weight:600;font-size:12px">${r.trainCode}</div>
+          <div style="color:#666;font-size:10px">${r.station}</div>
+          <div style="color:#888;font-size:10px">${r.operator}</div>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap">
+          <div style="background:#0d0d0d;border:1px solid ${leftMatch?'#22c55e':'#ef4444'};border-radius:3px;padding:5px 11px">
+            <div style="font-size:8px;letter-spacing:1.5px;color:#444;text-transform:uppercase;margin-bottom:3px">Seal Left</div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="font-size:10px;color:#555">Expected: <span style="color:#c0c0c0">${prev?prev.newSealLeft:'—'}</span></div>
+              <div style="font-size:10px;color:#555">Got: <span style="color:${leftMatch?'#4ade80':'#f87171'};font-weight:600">${r.oldSealLeft}</span></div>
+              <div style="font-size:9px;font-weight:700;color:${leftMatch?'#4ade80':'#f87171'}">${leftMatch?'✓':'✗'}</div>
+            </div>
+          </div>
+          <div style="background:#0d0d0d;border:1px solid ${rightMatch?'#22c55e':'#ef4444'};border-radius:3px;padding:5px 11px">
+            <div style="font-size:8px;letter-spacing:1.5px;color:#444;text-transform:uppercase;margin-bottom:3px">Seal Right</div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="font-size:10px;color:#555">Expected: <span style="color:#c0c0c0">${prev?prev.newSealRight:'—'}</span></div>
+              <div style="font-size:10px;color:#555">Got: <span style="color:${rightMatch?'#4ade80':'#f87171'};font-weight:600">${r.oldSealRight}</span></div>
+              <div style="font-size:9px;font-weight:700;color:${rightMatch?'#4ade80':'#f87171'}">${rightMatch?'✓':'✗'}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    sealAlertsHTML = `<div style="margin-bottom:20px">
+      <div class="section-title small" style="color:#f87171;display:flex;align-items:center;gap:8px">
+        <span style="background:#ef4444;color:#000;padding:1px 7px;border-radius:3px;font-size:11px">${sealFailRecords.length}</span>
+        Seal Mismatch Alerts — All Time
+      </div>
+      <div style="background:#111;border:1px solid #2a1010;border-left:3px solid #ef4444;border-radius:5px;overflow:hidden">${sealRows}</div>
+    </div>`;
+  }
+
+  // Meter mismatch alerts
+  const meterMismatches = state.refills.filter(r=>r.meterMismatch);
+  let meterAlertsHTML = '';
+  if(meterMismatches.length>0){
+    const meterRows = meterMismatches.map(r=>{
+      const diff = Number(r.refillAmt) - Number(r.meterDiff||0);
+      const sign = diff>0?'+':'';
+      const color = '#f59e0b';
+      return `<div style="display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid #161616;flex-wrap:wrap">
+        <div style="font-size:9px;color:#333;flex-shrink:0">${r.date}</div>
+        <div style="color:#f59e0b;font-weight:600;font-size:12px;flex-shrink:0">${r.trainCode}</div>
+        <div style="color:#888;font-size:11px;flex:1;min-width:100px">${r.station}</div>
+        <div style="display:flex;gap:14px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+          <div style="font-size:11px;color:#555">Meter: <span style="color:#c0c0c0">${fmt(r.meterDiff||0)} L</span></div>
+          <div style="font-size:11px;color:#555">Refill: <span style="color:#c0c0c0">${fmt(r.refillAmt)} L</span></div>
+          <div style="background:#1a0800;border:1px solid ${color};color:${color};padding:2px 10px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">${sign}${fmt(diff)} L</div>
+          <div style="font-size:10px;color:#555">by ${r.operator||'—'}</div>
+        </div>
+      </div>`;
+    }).join('');
+    meterAlertsHTML = `<div style="margin-bottom:20px">
+      <div class="section-title small" style="color:#f59e0b;display:flex;align-items:center;gap:8px">
+        <span style="background:#f59e0b;color:#000;padding:1px 7px;border-radius:3px;font-size:11px">${meterMismatches.length}</span>
+        Meter vs Refill Mismatches — All Time
+      </div>
+      <div style="background:#111;border:1px solid #2a1500;border-left:3px solid #f59e0b;border-radius:5px;overflow:hidden">${meterRows}</div>
+    </div>`;
+  }
+
+  // Delivery variance alerts
+  const deliveredWithVariance = state.orders.filter(o=>o.status==='Delivered'&&o.deliveredQty!=null&&Number(o.deliveredQty)!==Number(o.quantity));
+  let deliveryAlertsHTML = '';
+  if(deliveredWithVariance.length>0){
+    const alertRows=deliveredWithVariance.map(o=>{
+      const ordered=Number(o.quantity),delivered=Number(o.deliveredQty),diff=delivered-ordered;
+      const pct=((Math.abs(diff)/ordered)*100).toFixed(1),sign=diff>0?'+':'';
+      const color=diff<0?'#f87171':'#4ade80',bg=diff<0?'#1a0000':'#001208';
+      return `<div style="display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid #161616;flex-wrap:wrap">
+        <div style="font-size:9px;color:#333;flex-shrink:0">${o.deliveredDate||o.requestDate}</div>
+        <div style="color:#f59e0b;font-weight:600;font-size:12px;flex-shrink:0">${o.orderNo}</div>
+        <div style="color:#888;font-size:11px;flex:1;min-width:100px">${o.station}</div>
+        <div style="display:flex;gap:14px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+          <div style="font-size:11px;color:#555">Ordered: <span style="color:#c0c0c0">${fmt(ordered)} L</span></div>
+          <div style="font-size:11px;color:#555">Delivered: <span style="color:${color}">${fmt(delivered)} L</span></div>
+          <div style="background:${bg};border:1px solid ${color};color:${color};padding:2px 10px;border-radius:3px;font-size:10px;font-weight:700;white-space:nowrap">${sign}${fmt(diff)} L &nbsp;${sign}${pct}%</div>
+        </div>
+      </div>`;
+    }).join('');
+    deliveryAlertsHTML=`<div style="margin-bottom:20px">
+      <div class="section-title small" style="color:#f87171;display:flex;align-items:center;gap:8px">
+        <span style="background:#ef4444;color:#000;padding:1px 7px;border-radius:3px;font-size:11px">${deliveredWithVariance.length}</span>
+        Delivery Quantity Variances
+      </div>
+      <div style="background:#111;border:1px solid #2a1010;border-left:3px solid #ef4444;border-radius:5px;overflow:hidden">${alertRows}</div>
+    </div>`;
+  }
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff">Dashboard</div>
+        <div style="font-size:10px;color:#444;letter-spacing:1px;margin-top:2px">${p==='Custom'?(state.dashFrom||'?')+' — '+(state.dashTo||'?'):periodLabel(p)}</div>
+      </div>
+      ${periodBarHTML(p,'setDashPeriod',false,'dashFrom','dashTo',state.dashFrom||'',state.dashTo||'','dashPeriod')}
+    </div>
+
+    <div class="kpi-grid">
+      ${kpis.map(({l,v,a,s,fn})=>`
+        <div class="kpi-card${fn?' clickable':''}" style="border-top:2px solid ${a}" ${fn?`onclick="${fn}"`:''}
+          onmouseenter="${fn?`this.style.borderColor='${a}'`:''}"
+          onmouseleave="this.style.borderColor='#1c1c1c';this.style.borderTopColor='${a}'">
+          <div class="kpi-label">${l}</div>
+          <div class="kpi-val">${v}</div>
+          ${s?`<div class="kpi-sub">${s}</div>`:''}
+        </div>`).join('')}
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div>
+        <div class="section-title small">Station Stock — Current</div>
+        ${stationCards}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div class="section-title small">Top Train Consumers — ${p}</div>
+          <div class="card">${trainRows}</div>
+        </div>
+        ${stUsage.length>0?`<div>
+          <div class="section-title small">Station Dispensed — ${p}</div>
+          <div class="card">${stRows}</div>
+        </div>`:''}
+      </div>
+    </div>
+
+    ${meterAlertsHTML}
+
+    ${sealAlertsHTML}
+
+    ${deliveryAlertsHTML}
+
+    ${(()=>{
+      const openFlags  = state.maintenanceFlags.filter(m=>!m.fixed);
+      const fixedFlags = state.maintenanceFlags.filter(m=>m.fixed);
+      if(!state.maintenanceFlags.length) return '';
+      const issueLabel = m => m.issue==='NO_SEAL' ? 'No Seal' : 'No Gas Cap';
+      const issueBadge = m => `<span style="background:${m.issue==='NO_SEAL'?'#1a0000':'#1a0800'};border:1px solid ${m.issue==='NO_SEAL'?'#ef4444':'#f97316'};color:${m.issue==='NO_SEAL'?'#f87171':'#fb923c'};padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px">${issueLabel(m)}</span>`;
+      const openRows = openFlags.map(m=>`
+        <tr>
+          <td style="color:#f59e0b;font-weight:700">${m.trainCode}</td>
+          <td>${issueBadge(m)}</td>
+          <td style="color:#666">${m.side}</td>
+          <td style="color:#555">${m.detectedAt}</td>
+          <td style="color:#333">—</td>
+          <td>
+            <button onclick="markMaintenanceFixed('${m.id}')" style="background:#001208;border:1px solid #22c55e;color:#4ade80;padding:3px 10px;border-radius:3px;font-size:9px;cursor:pointer;font-weight:700" onmouseover="this.style.background='#22c55e';this.style.color='#000'" onmouseout="this.style.background='#001208';this.style.color='#4ade80'">✓ Mark Fixed</button>
+          </td>
+        </tr>`).join('');
+      const fixedRows = fixedFlags.map(m=>`
+        <tr style="opacity:.5">
+          <td style="color:#f59e0b;font-weight:700">${m.trainCode}</td>
+          <td>${issueBadge(m)}</td>
+          <td style="color:#666">${m.side}</td>
+          <td style="color:#555">${m.detectedAt}</td>
+          <td style="color:#4ade80">${m.fixedAt||'—'}</td>
+          <td><span style="font-size:9px;color:#4ade80;font-weight:700;letter-spacing:1px">✓ FIXED</span></td>
+        </tr>`).join('');
+      const showLog = state.showMaintenanceLog;
+      return `<div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="section-title small" style="color:#fb923c;display:flex;align-items:center;gap:8px;margin:0">
+            🔧 Trains Needing Maintenance
+            ${openFlags.length?`<span style="background:#fb923c;color:#000;font-size:9px;font-weight:800;padding:1px 7px;border-radius:10px">${openFlags.length}</span>`:''}
+          </div>
+          ${fixedFlags.length?`<button onclick="state.showMaintenanceLog=!state.showMaintenanceLog;render()" style="background:none;border:1px solid #1e1e1e;color:#444;padding:4px 12px;border-radius:3px;font-size:9px;cursor:pointer;letter-spacing:1px" onmouseover="this.style.borderColor='#555';this.style.color='#888'" onmouseout="this.style.borderColor='#1e1e1e';this.style.color='#444'">
+            ${showLog?'▲ Hide Log':'▼ Show Log'} (${fixedFlags.length} fixed)
+          </button>`:''}
+        </div>
+        <div class="card" style="overflow:auto">
+          ${!openFlags.length&&!showLog
+            ? `<div style="padding:12px;font-size:11px;color:#2a2a2a;text-align:center">✓ No open maintenance issues</div>`
+            : `<table>
+                <thead><tr>${['Train','Issue','Side','Detected','Fixed','Action'].map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+                <tbody>
+                  ${openRows}
+                  ${showLog ? fixedRows : ''}
+                </tbody>
+              </table>`}
+        </div>
+      </div>`;
+    })()}
+
+    <div class="section-title small">Recent Refills — ${p}</div>
+    <div class="card" style="overflow:auto">
+      ${fRef.length===0?`<div class="empty-state">No refills this ${p.toLowerCase()}</div>`:`
+        <table>
+          <thead><tr>${['Date','Train','Station','Operator','Refill (L)','Seal'].map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${recentRows}</tbody>
+        </table>`}
+    </div>`;
+}
+
+function setDashPeriod(p) { state.dashPeriod=p; if(p!=='Custom'){state.dashFrom='';state.dashTo='';} render(); }
+
+// ── Refill Form ───────────────────────────────────────────────────────────
+function renderRefill() {
+  const s = state.refillForm || {date:today(),trainCode:'',station:'',fuelType:'',invoiceNo:'',startOdo:'',endOdo:'',operator:'',fuelRemaining:'',refillAmt:'',oldSealLeft:'',oldSealRight:'',oldSealBattery:'',newSealLeft:'',newSealRight:'',newSealBattery:'',battOldInput:''};
+  const totalAfter = (Number(s.fuelRemaining)||0)+(Number(s.refillAmt)||0);
+
+  let lastRecord = null;
+  if(s.trainCode) lastRecord = getPrevRecord(s.trainCode, s.date || null);
+
+  // Last refill at this station — for meter start hint (most recent by date before current date)
+  let lastStationRecord = null;
+  if(s.station) {
+    // Most recent record at this station with an endOdo, at or before the form date
+    // Same-date records: pick the last by insertion index (most recently entered)
+    const formDate = s.date || today();
+    const m = state.refills
+      .map((r, i) => ({r, i}))
+      .filter(({r}) => r.station === s.station && r.endOdo && r.date <= formDate)
+      .sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+    lastStationRecord = m.length ? m[m.length - 1].r : null;
+  }
+  const lastMeter = lastStationRecord ? Number(lastStationRecord.endOdo) : null;
+
+  let sealCheck = '';
+  if(s.trainCode) {
+    if(!lastRecord) {
+      sealCheck = (s.oldSealLeft || s.oldSealRight) ? 'FIRST FILL' : '';
+    } else if(s.oldSealLeft && s.oldSealRight) {
+      sealCheck = (s.oldSealLeft===lastRecord.newSealLeft && s.oldSealRight===lastRecord.newSealRight) ? 'PASS' : 'FAIL';
+    }
+  }
+  const sc = sealColor(sealCheck);
+
+  const savedBanner = state.savedRefill ? `
+    <div class="success-banner">
+      <span style="color:#4ade80;font-size:16px">✓</span>
+      <div><div style="color:#4ade80;font-weight:600;font-size:12px;margin-bottom:2px">Saved — inventory updated</div>
+      <div style="font-size:11px;color:#444">${state.savedRefill.trainCode} @ ${state.savedRefill.station} · ${fmt(state.savedRefill.refillAmt)}L · Seal: <span style="color:${sealColor(state.savedRefill.sealCheck)}">${state.savedRefill.sealCheck}</span></div>
+      </div></div>` : '';
+
+  const oldLWarn = s.oldSealLeft&&lastRecord&&s.oldSealLeft!==lastRecord.newSealLeft;
+  const oldRWarn = s.oldSealRight&&lastRecord&&s.oldSealRight!==lastRecord.newSealRight;
+
+  // Open maintenance flags for selected train
+  const trainMaintFlags = s.trainCode ? state.maintenanceFlags.filter(m=>m.trainCode===s.trainCode&&!m.fixed) : [];
+  const maintBanner = trainMaintFlags.length ? `
+    <div style="background:#1a1100;border:1px solid #f59e0b;border-radius:5px;padding:11px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 16px #f59e0b44">
+      <span style="font-size:18px;line-height:1">⚠</span>
+      <div>
+        <div style="color:#f59e0b;font-weight:700;font-size:11px;letter-spacing:1px;margin-bottom:5px">MAINTENANCE REQUIRED — ${s.trainCode}</div>
+        ${trainMaintFlags.map(m=>`<div style="font-size:11px;color:#fbbf24;margin-bottom:2px">• ${m.side} side: <span style="font-weight:700">${m.issue==='NO_SEAL'?'No Seal':'No Gas Tank Cap'}</span> <span style="color:#555;font-size:10px">(since ${m.detectedAt})</span></div>`).join('')}
+        <div style="font-size:10px;color:#444;margin-top:5px">Seal fields auto-filled. Go to Dashboard → Mark Fixed once repaired.</div>
+      </div>
+    </div>` : '';
+
+  return `
+    <div style="max-width:1100px">
+      <div class="section-title">Fuel Refill Entry</div>
+      ${savedBanner}
+      <div class="card" style="padding:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+          <!-- LEFT COLUMN: main fields -->
+          <div>
+            ${maintBanner}
+            <div class="grid-3" style="margin-bottom:13px">
+              ${fieldHTML('Date *',`<input type="date" id="rf-date" value="${s.date}" onchange="rfChange('date',this.value)">`)}
+              ${fieldHTML('Train Code *',`
+                <div style="position:relative" id="rf-train-wrap">
+                  <input type="text" id="rf-train-input"
+                    value="${s.trainCode}"
+                    placeholder="Type to search…"
+                    autocomplete="off"
+                    oninput="rfTrainSearch(this.value)"
+                    onfocus="rfTrainSearch(this.value)"
+                    onblur="setTimeout(()=>rfTrainHide(),180)"
+                    onkeydown="rfTrainKey(event)"
+                    style="padding-right:28px;${trainMaintFlags.length?'border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55;':''}">
+                  <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#333;pointer-events:none;font-size:10px">▼</span>
+                  <div id="rf-train-drop" style="display:none;position:absolute;z-index:999;top:calc(100% + 3px);left:0;right:0;background:#0d0d0d;border:1px solid #f59e0b;border-radius:4px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px #000a"></div>
+                </div>`)}
+              ${fieldHTML('Station *',`<select id="rf-station" onchange="rfChange('station',this.value)"><option value="">Select…</option>${state.stations.map(st=>`<option value="${st}"${s.station===st?' selected':''}>${st}</option>`).join('')}</select>`)}
+            </div>
+            <div class="grid-2" style="margin-bottom:13px">
+              ${(()=>{
+                const prefix = state.invoicePrefixes[s.station] || null;
+                if(prefix){
+                  const num = s.invoiceNo.startsWith(prefix) ? s.invoiceNo.slice(prefix.length) : '';
+                  return fieldHTML('Invoice No.',`<div style="display:flex;align-items:center;gap:0">
+                    <span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#7dd3fc;font-weight:700;white-space:nowrap;letter-spacing:1px">${prefix}</span>
+                    <input type="text" id="rf-invoice" value="${num}" placeholder="Number" oninput="rfInvoiceInput(this.value)" style="border-radius:0 4px 4px 0;border-left:none">
+                  </div>`);
+                }
+                return fieldHTML('Invoice No.',`<input type="text" id="rf-invoice" value="${s.invoiceNo}" placeholder="Optional" oninput="rfSilent('invoiceNo',this.value)">`);
+              })()}
+              ${fieldHTML('Station Meter Start',`
+                <div>
+                  <div style="display:flex;gap:0;margin-bottom:${lastMeter?'5px':'0'}">
+                    <input type="number" id="rf-startodo" value="${s.startOdo}" placeholder="${lastMeter ? lastMeter : 'enter reading'}"
+                      oninput="rfSilent('startOdo',this.value);rfUpdateMeter()"
+                      style="border-radius:4px 0 0 4px;flex:1;${s.startOdo && lastMeter && Number(s.startOdo) !== lastMeter ? 'border-color:#ef4444' : s.startOdo && lastMeter && Number(s.startOdo) === lastMeter ? 'border-color:#22c55e' : ''}">
+                    ${lastMeter ? `<button
+                      title="Use last meter end reading from log: ${fmt(lastMeter)}"
+                      onmousedown="rfSilent('startOdo',${lastMeter});document.getElementById('rf-startodo').value=${lastMeter};rfUpdateMeter()"
+                      style="background:${s.startOdo==lastMeter?'#1a2a0a':'#0d0d0d'};border:1px solid ${s.startOdo==lastMeter?'#4ade80':'#2a2a2a'};border-left:none;border-radius:0 4px 4px 0;color:${s.startOdo==lastMeter?'#4ade80':'#555'};padding:0 10px;font-size:10px;cursor:pointer;white-space:nowrap;transition:all .15s"
+                      onmouseover="this.style.borderColor='#4ade80';this.style.color='#4ade80';this.style.background='#0d1a0d'"
+                      onmouseout="this.style.borderColor='${s.startOdo==lastMeter?'#4ade80':'#2a2a2a'}';this.style.color='${s.startOdo==lastMeter?'#4ade80':'#555'}';this.style.background='${s.startOdo==lastMeter?'#1a2a0a':'#0d0d0d'}'">
+                      ↑ Use ${fmt(lastMeter)}
+                    </button>` : ''}
+                  </div>
+                  ${lastMeter
+                    ? `<div style="font-size:9px;color:#2a2a2a;margin-top:2px">Last log end reading · <span style="color:#333">${lastStationRecord.date}</span> · Train <span style="color:#333">${lastStationRecord.trainCode}</span></div>`
+                    : s.station ? `<div style="font-size:9px;color:#2a2a2a;margin-top:2px">No previous records at this station</div>` : ''
+                  }
+                  ${s.startOdo && lastMeter && Number(s.startOdo) !== lastMeter ? `
+                    <div style="margin-top:6px;background:#1a0000;border:1px solid #ef4444;border-radius:4px;padding:7px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span style="font-size:10px;color:#f87171;font-weight:600">⚠ Does not match last log reading</span>
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <span style="font-size:10px;color:#555">Log: <span style="color:#c0c0c0">${fmt(lastMeter)}</span></span>
+                        <span style="font-size:10px;color:${Number(s.startOdo)>lastMeter?'#4ade80':'#f87171'}">Diff: ${Number(s.startOdo)>lastMeter?'+':''}${fmt(Number(s.startOdo)-lastMeter)}</span>
+                      </div>
+                    </div>` : ''}
+                  ${s.startOdo && lastMeter && Number(s.startOdo) === lastMeter ? `
+                    <div style="margin-top:4px;font-size:9px;color:#4ade80;font-weight:600">✓ Matches last log reading</div>` : ''}
+                </div>`)}
+            </div>
+            <div class="grid-2" style="margin-bottom:13px">
+              ${fieldHTML('Station Meter End',`<input type="number" id="rf-endodo" value="${s.endOdo}" placeholder="reading" oninput="rfSilent('endOdo',this.value);rfUpdateMeter()">`)}
+              ${fieldHTML('Fuel Type *',`<select id="rf-fueltype" onchange="rfChange('fuelType',this.value)"><option value="">Select…</option>${state.fuelTypes.map(f=>`<option value="${f}"${s.fuelType===f?' selected':''}>${f}</option>`).join('')}</select>`)}
+            </div>
+            <div id="rf-meter-warn" style="margin-bottom:13px">${(()=>{
+              const meterDiff = (Number(s.endOdo)||0)-(Number(s.startOdo)||0);
+              const refillAmt = Number(s.refillAmt)||0;
+              if(s.startOdo&&s.endOdo&&refillAmt&&meterDiff!==refillAmt){
+                const diff=refillAmt-meterDiff;
+                return `<div style="background:#1a0800;border:1px solid #f59e0b;border-radius:4px;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+                  <div style="font-size:11px;color:#fbbf24;font-weight:600">⚠ Meter vs Refill mismatch — will be flagged on Dashboard</div>
+                  <div style="display:flex;gap:14px;font-size:10px;color:#666">
+                    <span>Meter: <span style="color:#c0c0c0">${fmt(meterDiff)} L</span></span>
+                    <span>Refill: <span style="color:#c0c0c0">${fmt(refillAmt)} L</span></span>
+                    <span style="color:${diff>0?'#f87171':'#4ade80'}">${diff>0?'+':''}${fmt(diff)} L</span>
+                  </div>
+                </div>`;
+              }
+              if(s.startOdo&&s.endOdo&&refillAmt&&meterDiff===refillAmt){
+                return `<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:7px 14px;font-size:11px;color:#4ade80">✓ Meter reading matches refill amount</div>`;
+              }
+              return '';
+            })()}</div>
+            <div class="grid-2" style="margin-bottom:13px;align-items:start">
+              ${fieldHTML('Operator *',`<div style="display:flex;align-items:center;gap:0">
+                <span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#f59e0b;font-weight:700;white-space:nowrap;letter-spacing:1px">EM</span>
+                <input type="text" id="rf-op" value="${s.operator.startsWith('EM')?s.operator.slice(2):s.operator}" placeholder="Code (e.g. 001)" oninput="rfOpInput(this.value)" style="border-radius:0 4px 4px 0;border-left:none">
+              </div>`)}
+              ${fieldHTML('Tank Remaining (L)',`<input type="number" id="rf-remain" value="${s.fuelRemaining}" min="0" oninput="rfSilent('fuelRemaining',this.value);rfUpdateTotal()">`)}
+            </div>
+            <div class="grid-2" style="margin-bottom:13px;align-items:start">
+              ${fieldHTML('Refill Amount (L) *',`<input type="number" id="rf-amt" value="${s.refillAmt}" min="1" oninput="rfSilent('refillAmt',this.value);rfUpdateTotal();rfUpdateMeter()">`)}
+              ${fieldHTML('Train Tank Total After',`<div id="rf-total" class="total-after-display${totalAfter?' has-value':''}">${totalAfter||'—'}<span style="font-size:11px;color:#333;font-weight:400"> L</span></div>`)}
+            </div>
+            <button class="btn-primary" onclick="submitRefill()">Submit Refill &amp; Update Inventory →</button>
+          </div>
+
+
+          <!-- RIGHT COLUMN: seal codes -->
+          <div class="seal-section" style="margin:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div class="field-label" style="margin:0;font-size:10px;letter-spacing:2px">SEAL CODES</div>
+              <div id="rf-sealcheck">${sealCheck?`<div class="seal-check-badge" style="background:${sealCheck==='PASS'?'#001208':sealCheck==='FIRST FILL'?'#001020':'#1a0000'};border:1px solid ${sc};color:${sc}">${sealCheck}</div>`:''}</div>
+            </div>
+
+            ${!s.trainCode
+              ? `<div style="background:#0a0a0a;border:1px dashed #1a1a1a;border-radius:4px;padding:20px;text-align:center;font-size:11px;color:#222">Select a train to fill seal codes</div>`
+              : (() => {
+                  const lastL = lastRecord ? (lastRecord.newSealLeft||'') : '';
+                  const lastR = lastRecord ? (lastRecord.newSealRight||'') : '';
+                  const lastB = lastRecord ? (lastRecord.newSealBattery||'') : '';
+
+                  // ── Gas Tank Seals: Left & Right ───────────────────────
+                  const tankSeals = ['Left','Right'].map(side => {
+                    const fk   = `oldSeal${side}`;
+                    const nfk  = `newSeal${side}`;
+                    const oldV = s[fk]||'';
+                    const newV = s[nfk]||'';
+                    const lastCode = side==='Left' ? lastL : lastR;
+                    const isNoSeal  = oldV==='NO_SEAL';
+                    const isNoCap   = oldV==='NO_CAP';
+                    const isSpecial = isNoSeal||isNoCap;
+                    const matched   = !isSpecial && oldV && lastCode && oldV===lastCode;
+                    const mismatch  = !isSpecial && oldV && lastCode && oldV!==lastCode;
+
+                    const sBtn = (label, val, color, active) =>
+                      `<button onmousedown="rfSealOption('${fk}','${val}')"
+                        style="padding:3px 7px;font-size:8px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;white-space:nowrap;
+                        background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#444'}"
+                        onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+                        onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#444'}'">
+                        ${label}</button>`;
+
+                    return `<div style="background:#0d0d0d;border:1px solid ${mismatch?'#ef4444':matched?'#166534':'#1a1a1a'};border-radius:5px;padding:10px;transition:border-color .2s">
+
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+                        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555">⛽ ${side} Tank</span>
+                        ${lastCode
+                          ? `<span style="font-size:9px;color:#2a2a2a">Expected: <span style="font-family:monospace;letter-spacing:1px;font-size:10px;font-weight:700;color:${matched?'#4ade80':mismatch?'#f87171':'#444'}">${lastCode}</span></span>`
+                          : `<span style="font-size:9px;color:#222">First fill</span>`}
+                      </div>
+
+                      <div style="margin-bottom:7px">
+                        <div style="font-size:8px;color:#333;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Old Seal — type code you see on tank *</div>
+                        ${isSpecial
+                          ? `<div style="background:${isNoSeal?'#1a0000':'#1a0800'};border:1px solid ${isNoSeal?'#ef4444':'#f97316'};border-radius:3px;padding:7px 10px;font-size:10px;color:${isNoSeal?'#f87171':'#fb923c'};font-weight:600">⚠ ${isNoSeal?'No seal fitted':'No gas cap'}</div>`
+                          : `<input type="text" value="${oldV}" placeholder="${lastCode?'Type code to verify…':'Enter seal code…'}"
+                              oninput="rfSilent('${fk}',this.value.toUpperCase());rfUpdateSeal()"
+                              style="font-size:12px;padding:7px 10px;letter-spacing:1px;font-family:monospace;
+                              ${matched?'border-color:#22c55e;background:#001208':mismatch?'border-color:#ef4444;background:#1a0000':''}">`
+                        }
+                        ${matched ? `<div style="margin-top:4px;font-size:9px;color:#4ade80;font-weight:600">✓ Seal matches — OK to refill</div>` : ''}
+                        ${mismatch ? `<div style="margin-top:4px;font-size:9px;color:#f87171;font-weight:600">⚠ Mismatch — check for tampering</div>` : ''}
+                      </div>
+
+                      <div style="display:flex;gap:4px;margin-bottom:7px">
+                        ${sBtn('No Seal','NO_SEAL','#f87171',isNoSeal)}
+                        ${sBtn('No Cap','NO_CAP','#fb923c',isNoCap)}
+                        ${isSpecial ? sBtn('Clear','CLEAR_'+side,'#888',false) : ''}
+                      </div>
+
+                      <div>
+                        <div style="font-size:8px;color:#333;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">New Seal — code applied after refill *</div>
+                        ${isSpecial
+                          ? `<div style="background:#111;border:1px solid #1e1e1e;border-radius:3px;padding:6px 10px;font-size:10px;color:#2a2a2a">N/A</div>`
+                          : `<input type="text" value="${newV}" placeholder="Enter new seal code…"
+                              oninput="rfSilent('${nfk}',this.value.toUpperCase())"
+                              style="font-size:12px;padding:7px 10px;letter-spacing:1px;font-family:monospace">`
+                        }
+                      </div>
+                    </div>`;
+                  }).join('');
+
+                  // ── Battery Box Seal ───────────────────────────────────
+                  const battVal    = s.oldSealBattery||'';
+                  const battOldIn  = s.battOldInput||'';          // typed old-seal when in CHANGE_MODE
+                  const isNoChange = battVal==='NO_CHANGE';
+                  const isChangeMd = battVal==='CHANGE_MODE';
+                  const isNoSealB  = battVal==='NO_SEAL';
+                  const isTypedB   = battVal && !['NO_CHANGE','CHANGE_MODE','NO_SEAL'].includes(battVal);
+                  const isChangeB  = isChangeMd||isTypedB;
+
+                  // Effective old value for live validation
+                  const battOldEff = isNoChange ? lastB : isChangeMd ? battOldIn : isTypedB ? battVal : '';
+
+                  // Per-battery status
+                  let battStatus = '';
+                  if(isNoSealB) { battStatus = 'FAIL'; }
+                  else if(!lastRecord) { battStatus = lastB ? '' : 'FIRST FILL'; }
+                  else if(lastB && !battOldEff && (isChangeMd||isNoChange)) { battStatus = 'MISSING'; }
+                  else if(battOldEff && lastB) { battStatus = battOldEff===lastB ? 'PASS' : 'FAIL'; }
+                  else if(!lastB && battOldEff) { battStatus = 'FIRST FILL'; }
+
+                  const battStatusColor = {PASS:'#4ade80',FAIL:'#f87171','FIRST FILL':'#38bdf8',MISSING:'#f59e0b'}[battStatus]||'';
+                  const battStatusBadge = battStatus
+                    ? `<span style="font-size:8px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:${battStatusColor}22;border:1px solid ${battStatusColor};color:${battStatusColor}">${battStatus}</span>` : '';
+
+                  const bBtn = (label, val, color, active) =>
+                    `<button onmousedown="rfSealOption('oldSealBattery','${val}')"
+                      style="flex:1;padding:5px 3px;font-size:9px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;
+                      background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#333'}"
+                      onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+                      onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#333'}'">
+                      ${label}</button>`;
+
+                  // Body depending on mode
+                  let battBody;
+                  if(isNoChange) {
+                    battBody = `<div style="background:#060e14;border:1px solid #1a3a5a;border-radius:3px;padding:9px 13px;display:flex;justify-content:space-between;align-items:center">
+                      <div>
+                        <div style="font-size:8px;color:#1a4060;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Seal Code (unchanged)</div>
+                        <span style="font-size:13px;color:#7dd3fc;font-weight:700;font-family:monospace;letter-spacing:2px">${lastB||'—'}</span>
+                      </div>
+                      <span style="font-size:8px;color:#1e3a5f;font-weight:700;letter-spacing:1px">🔒 UNCHANGED</span>
+                    </div>`;
+                  } else if(isNoSealB) {
+                    battBody = `<div style="background:#1a0000;border:1px solid #ef4444;border-radius:3px;padding:8px 10px;font-size:9px;color:#f87171;font-weight:600">⚠ No battery seal fitted — train flagged for maintenance</div>`;
+                  } else if(isChangeMd || isTypedB) {
+                    // Split: Old Seal verify + New Seal entry
+                    const oldMatch  = battOldIn && lastB && battOldIn===lastB;
+                    const oldBad    = battOldIn && lastB && battOldIn!==lastB;
+                    const newVal    = s.newSealBattery||'';
+                    battBody = `
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                        <div>
+                          <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">
+                            ${lastB ? 'Old Seal — verify code on battery *' : 'Current Seal Code'}
+                          </div>
+                          <input type="text" value="${battOldIn}" placeholder="${lastB?'Type seal to verify…':'Enter battery seal code…'}"
+                            oninput="rfSilent('battOldInput',this.value.toUpperCase());rfUpdateSeal()"
+                            style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px;
+                            ${oldMatch?'border-color:#22c55e;background:#001208':oldBad?'border-color:#ef4444;background:#1a0000':''}">
+                          ${oldMatch ? `<div style="margin-top:3px;font-size:9px;color:#4ade80;font-weight:600">✓ Matches expected</div>` : ''}
+                          ${oldBad   ? `<div style="margin-top:3px;font-size:9px;color:#f87171;font-weight:600">⚠ Mismatch — check seal</div>` : ''}
+                          ${battStatus==='MISSING' ? `<div style="margin-top:3px;font-size:9px;color:#f59e0b;font-weight:600">⚠ Old seal code required</div>` : ''}
+                        </div>
+                        <div>
+                          <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">New Seal — code being fitted *</div>
+                          <input type="text" value="${newVal}" placeholder="Enter new seal code…"
+                            oninput="rfSilent('newSealBattery',this.value.toUpperCase())"
+                            style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px;${newVal?'border-color:#f59e0b':''}">
+                          ${newVal ? `<div style="margin-top:3px;font-size:9px;color:#f59e0b;font-weight:600">New: ${newVal}</div>` : ''}
+                        </div>
+                      </div>`;
+                  } else {
+                    // First fill — single input, old = new
+                    battBody = `
+                      <div>
+                        <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Battery Seal Code *</div>
+                        <input type="text" value="${battOldIn}" placeholder="Enter battery seal code…"
+                          oninput="rfSilent('battOldInput',this.value.toUpperCase());rfSilent('newSealBattery',this.value.toUpperCase());rfUpdateSeal()"
+                          style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px">
+                      </div>`;
+                  }
+
+                  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    ${tankSeals}
+                  </div>
+                  <div style="background:#080c14;border:1px solid ${isNoSealB?'#3a0000':battStatus==='FAIL'?'#3a0000':battStatus==='MISSING'?'#2a1a00':isChangeB?'#1e1e00':'#1a2233'};border-radius:5px;padding:10px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                      <span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#7dd3fc;font-weight:700">🔋 Battery Box Seal</span>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        ${lastB
+                          ? `<span style="font-size:9px;color:#1e3a5f">Expected: <span style="color:#2a5a80;font-family:monospace;font-weight:700">${lastB}</span></span>`
+                          : `<span style="font-size:9px;color:#1a3040">${lastRecord?'No previous code':'First fill'}</span>`}
+                        ${battStatusBadge}
+                      </div>
+                    </div>
+                    ${lastRecord
+                      ? `<div style="display:flex;gap:3px;margin-bottom:8px">
+                          ${bBtn('✓ No Change','NO_CHANGE','#4ade80',isNoChange)}
+                          ${bBtn('✎ Change Seal','CHANGE_MODE','#f59e0b',isChangeB)}
+                          ${bBtn('✕ No Seal','NO_SEAL','#f87171',isNoSealB)}
+                        </div>`
+                      : `<div style="display:flex;gap:3px;margin-bottom:8px">
+                          ${bBtn('✕ No Seal','NO_SEAL','#f87171',isNoSealB)}
+                        </div>`
+                    }
+                    ${battBody}
+                  </div>`;
+                })()
+            }
+          </div>
+
+        </div>
+      </div>
+    </div>`;
+}
+
+// Silent update — saves to state without re-rendering (preserves typing)
+// ── Train Code searchable combobox ────────────────────────────────────────
+let _rfTrainIdx = -1;
+function rfTrainSearch(q) {
+  const drop = document.getElementById('rf-train-drop');
+  if(!drop) return;
+  const query = q.trim().toLowerCase();
+  const matches = query
+    ? state.trains.filter(t => t.toLowerCase().includes(query))
+    : state.trains;
+  if(!matches.length) { drop.style.display='none'; return; }
+  _rfTrainIdx = -1;
+  drop.innerHTML = matches.map((t,i) => {
+    const hasMaint = state.maintenanceFlags.some(m=>m.trainCode===t&&!m.fixed);
+    const label = t.toLowerCase().includes(query) && query
+      ? t.replace(new RegExp(`(${query})`, 'gi'), '<span style="color:#f59e0b;font-weight:700">$1</span>')
+      : t;
+    return `<div data-val="${t}" data-i="${i}"
+      onmousedown="rfTrainPick('${t}')"
+      onmouseover="rfTrainHover(${i})"
+      style="padding:8px 12px;font-size:11px;cursor:pointer;color:${hasMaint?'#fbbf24':'#c0c0c0'};border-bottom:1px solid #111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${hasMaint?'background:#0d0900;':''}">
+      ${hasMaint?'⚠ ':''}${label}${hasMaint?'<span style="font-size:9px;color:#f59e0b;margin-left:6px;letter-spacing:1px">NEEDS FIX</span>':''}
+    </div>`;
+  }).join('');
+  drop.style.display = 'block';
+}
+function rfTrainHover(i) {
+  _rfTrainIdx = i;
+  [...document.querySelectorAll('#rf-train-drop [data-i]')].forEach((el,j) => {
+    el.style.background = j===i ? '#1a1a0a' : '';
+    el.style.color = j===i ? '#f59e0b' : '#c0c0c0';
+  });
+}
+function rfTrainPick(val) {
+  const inp = document.getElementById('rf-train-input');
+  if(inp) inp.value = val;
+  rfChange('trainCode', val);
+  rfTrainHide();
+}
+function rfTrainHide() {
+  const drop = document.getElementById('rf-train-drop');
+  if(drop) drop.style.display = 'none';
+}
+function rfTrainKey(e) {
+  const drop = document.getElementById('rf-train-drop');
+  if(!drop || drop.style.display==='none') {
+    if(e.key==='ArrowDown'||e.key==='Enter') rfTrainSearch(e.target.value);
+    return;
+  }
+  const items = [...drop.querySelectorAll('[data-i]')];
+  if(!items.length) return;
+  if(e.key==='ArrowDown') { e.preventDefault(); rfTrainHover(Math.min(_rfTrainIdx+1, items.length-1)); }
+  else if(e.key==='ArrowUp') { e.preventDefault(); rfTrainHover(Math.max(_rfTrainIdx-1, 0)); }
+  else if(e.key==='Enter') { e.preventDefault(); if(_rfTrainIdx>=0) rfTrainPick(items[_rfTrainIdx].dataset.val); }
+  else if(e.key==='Escape') rfTrainHide();
+}
+
+function rfSilent(k,v) {
+  if(!state.refillForm) state.refillForm = {date:today(),trainCode:'',station:'',fuelType:'',invoiceNo:'',startOdo:'',endOdo:'',operator:'',fuelRemaining:'',refillAmt:'',oldSealLeft:'',oldSealRight:'',oldSealBattery:'',newSealLeft:'',newSealRight:'',newSealBattery:''};
+  state.refillForm[k] = v;
+}
+
+
+function rfInvoiceInput(v){
+  const f = state.refillForm||{};
+  const prefix = state.invoicePrefixes[f.station] || '';
+  rfSilent('invoiceNo', prefix + v);
+}
+
+// Full re-render only for dropdowns/date that affect layout (seal lookup, etc.)
+function rfChange(k,v) {
+  rfSilent(k,v);
+  if(k==='station') { rfSilent('invoiceNo',''); render(); return; }
+  if(k==='date') { render(); return; }  // refresh meter hint when date changes
+  if(k==='trainCode') {
+    // Reset all seal fields
+    rfSilent('oldSealLeft','');  rfSilent('oldSealRight','');  rfSilent('oldSealBattery','');
+    rfSilent('newSealLeft','');  rfSilent('newSealRight','');  rfSilent('newSealBattery','');
+    rfSilent('battOldInput','');
+
+    const prevRecord = getPrevRecord(v, state.refillForm?.date || null);
+    const openFlags  = state.maintenanceFlags.filter(m=>m.trainCode===v && !m.fixed);
+
+    // Left & Right: check for maintenance flags, otherwise leave blank for user to type
+    ['Left','Right'].forEach(side => {
+      const flag = openFlags.find(m=>m.side===side);
+      if(flag) {
+        rfSilent(`oldSeal${side}`, flag.issue);
+        rfSilent(`newSeal${side}`, flag.issue);
+      }
+      // Otherwise: blank — user types old code to verify against last record
+    });
+
+    // Battery: auto-set NO_CHANGE if previous record exists
+    const battFlag = openFlags.find(m=>m.side==='Battery');
+    if(battFlag) {
+      rfSilent('oldSealBattery', battFlag.issue);
+      rfSilent('newSealBattery', battFlag.issue);
+    } else if(prevRecord) {
+      rfSilent('oldSealBattery', 'NO_CHANGE');
+      rfSilent('newSealBattery', prevRecord.newSealBattery||'');
+    }
+  }
+  render();
+}
+
+// Update total-after display inline
+function rfUpdateTotal() {
+  const f = state.refillForm || {};
+  const t = (Number(f.fuelRemaining)||0)+(Number(f.refillAmt)||0);
+  const el = document.getElementById('rf-total');
+  if(!el) return;
+  el.innerHTML = (t||'—') + '<span style="font-size:11px;color:#333;font-weight:400"> L</span>';
+  el.className = 'total-after-display' + (t?' has-value':'');
+  rfUpdateMeter();
+}
+
+function rfUpdateMeter() {
+  const f = state.refillForm || {};
+  const start = Number(f.startOdo)||0;
+  const end = Number(f.endOdo)||0;
+  const refill = Number(f.refillAmt)||0;
+  const el = document.getElementById('rf-meter-warn');
+  if(!el) return;
+  if(!start || !end || !refill) { el.innerHTML=''; return; }
+  const meterDiff = end - start;
+  if(meterDiff === refill) {
+    el.innerHTML = `<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:7px 14px;font-size:11px;color:#4ade80">✓ Meter reading matches refill amount (${fmt(refill)} L)</div>`;
+  } else {
+    const diff = refill - meterDiff;
+    el.innerHTML = `<div style="background:#1a0800;border:1px solid #f59e0b;border-radius:4px;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <div style="font-size:11px;color:#fbbf24;font-weight:600">⚠ Meter vs Refill mismatch — will be flagged on Dashboard</div>
+      <div style="display:flex;gap:14px;font-size:10px;color:#666">
+        <span>Meter reading: <span style="color:#c0c0c0">${fmt(meterDiff)} L</span></span>
+        <span>Refill entered: <span style="color:#c0c0c0">${fmt(refill)} L</span></span>
+        <span style="color:${diff>0?'#f87171':'#4ade80'};font-weight:700">${diff>0?'+':''}${fmt(diff)} L</span>
+      </div>
+    </div>`;
+  }
+}
+
+function rfUpdateSeal() {
+  const f = state.refillForm || {};
+  if(!f.trainCode) return;
+  const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+  const el = document.getElementById('rf-sealcheck');
+
+  const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+
+  const leftVal  = f.oldSealLeft||'';
+  const rightVal = f.oldSealRight||'';
+  const battRaw  = f.oldSealBattery||'';
+  // For CHANGE_MODE, the verification input is stored in battOldInput
+  const battEff  = battRaw==='NO_CHANGE' ? (lastRecord?.newSealBattery||'') :
+                   battRaw==='CHANGE_MODE' ? (f.battOldInput||'') : battRaw;
+
+  // Need at least oldSealLeft or oldSealRight typed to show badge
+  if(!leftVal && !rightVal) { if(el) el.innerHTML=''; return; }
+
+  let sealCheck;
+  if(!lastRecord) {
+    sealCheck = 'FIRST FILL';
+  } else if(isSpecial(leftVal)||isSpecial(rightVal)||isSpecial(battRaw)) {
+    sealCheck = 'FAIL';
+  } else {
+    const lOk = !leftVal  || leftVal  === lastRecord.newSealLeft;
+    const rOk = !rightVal || rightVal === lastRecord.newSealRight;
+    const bOk = !battEff  || !lastRecord.newSealBattery || battEff === lastRecord.newSealBattery;
+    // Only show PASS when both sides are filled
+    if(leftVal && rightVal) {
+      sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+    } else {
+      sealCheck = lOk && rOk ? '' : 'FAIL';
+    }
+  }
+
+  const sc = sealColor(sealCheck);
+  if(el) el.innerHTML = sealCheck
+    ? `<div class="seal-check-badge" style="background:${sealCheck==='PASS'?'#001208':sealCheck==='FIRST FILL'?'#001020':'#1a0000'};border:1px solid ${sc};color:${sc}">${sealCheck}</div>`
+    : '';
+}
+
+function rfSealOption(field, value) {
+  const f = state.refillForm || {};
+  const side = field.includes('Left') ? 'Left' : field.includes('Right') ? 'Right' : 'Battery';
+  const newField = side === 'Battery' ? 'newSealBattery' : `newSeal${side}`;
+  const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+
+  if(value === 'NO_CHANGE') {
+    // Battery only
+    const lastVal = lastRecord ? (lastRecord.newSealBattery||'') : '';
+    rfSilent(field, 'NO_CHANGE');
+    rfSilent(newField, lastVal);
+    rfSilent('battOldInput', '');
+  } else if(value === 'CHANGE_MODE') {
+    // Battery only
+    rfSilent(field, 'CHANGE_MODE');
+    rfSilent(newField, '');
+    rfSilent('battOldInput', '');
+  } else if(value === 'CLEAR_Left' || value === 'CLEAR_Right') {
+    // Clear special status on Left/Right back to empty text input
+    const s2 = value === 'CLEAR_Left' ? 'Left' : 'Right';
+    rfSilent(`oldSeal${s2}`, '');
+    rfSilent(`newSeal${s2}`, '');
+  } else {
+    // NO_SEAL, NO_CAP — sets both old and new
+    rfSilent(field, value);
+    rfSilent(newField, value);
+  }
+  rfUpdateSeal();
+  render();
+}
+
+
+function rfOpInput(v){
+  const code = v.replace(/^EM/i,'');
+  rfSilent('operator','EM'+code.toUpperCase());
+}
+
+function submitRefill() {
+  const f = state.refillForm || {};
+  const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+  const isBattSpecial = v => v==='NO_SEAL';
+
+  // Resolve battery seal mode to real code before saving
+  const lastRecord = getPrevRecord(f.trainCode, f.date || null);
+  const lastBattCode = lastRecord?.newSealBattery||'';
+
+  if(f.oldSealBattery==='NO_CHANGE') {
+    // Unchanged: old = new = previous code
+    const v = lastBattCode;
+    rfSilent('oldSealBattery', v); rfSilent('newSealBattery', v);
+    f.oldSealBattery = v; f.newSealBattery = v;
+  } else if(f.oldSealBattery==='CHANGE_MODE') {
+    // Changing: oldSealBattery ← battOldInput, newSealBattery already set
+    const oldCode = f.battOldInput||'';
+    // Block if expected exists but old verify is blank (MISSING)
+    if(lastBattCode && !oldCode) {
+      alert('Battery seal: please enter the old seal code to verify before submitting.');
+      return;
+    }
+    rfSilent('oldSealBattery', oldCode); f.oldSealBattery = oldCode;
+    if(!f.newSealBattery) { alert('Battery seal: please enter the new seal code.'); return; }
+  } else if(!f.oldSealBattery && !lastRecord) {
+    // First fill typed in battOldInput (single input mode)
+    const v = f.battOldInput||'';
+    rfSilent('oldSealBattery', v); rfSilent('newSealBattery', v);
+    f.oldSealBattery = v; f.newSealBattery = v;
+  }
+
+  const required = ['date','trainCode','station','fuelType','operator','refillAmt','oldSealLeft','oldSealRight','oldSealBattery'];
+  if(!isSpecial(f.oldSealLeft))    required.push('newSealLeft');
+  if(!isSpecial(f.oldSealRight))   required.push('newSealRight');
+  if(!isBattSpecial(f.oldSealBattery)) required.push('newSealBattery');
+  const miss = required.filter(k=>!f[k]);
+  if(miss.length) { alert('Fill in: '+miss.join(', ')); return; }
+
+  let sealCheck = '';
+  const leftSpecial  = isSpecial(f.oldSealLeft);
+  const rightSpecial = isSpecial(f.oldSealRight);
+  const battSpecial  = isSpecial(f.oldSealBattery);
+  // For seal check, resolved battery value is already the real code (NO_CHANGE resolved above)
+
+  if(!lastRecord) sealCheck='FIRST FILL';
+  else if(leftSpecial||rightSpecial||battSpecial) sealCheck='FAIL';
+  else {
+    const lOk = f.oldSealLeft===lastRecord.newSealLeft;
+    const rOk = f.oldSealRight===lastRecord.newSealRight;
+    const bOk = !lastRecord.newSealBattery || f.oldSealBattery===lastRecord.newSealBattery;
+    sealCheck = (lOk&&rOk&&bOk) ? 'PASS' : 'FAIL';
+  }
+
+  if(sealCheck==='FAIL') {
+    notify(`⚠ Seal mismatch recorded — ${f.trainCode} will appear on Dashboard`, 'err');
+  }
+
+  const totalAfter = (Number(f.fuelRemaining)||0)+(Number(f.refillAmt)||0);
+  const meterDiff = (Number(f.endOdo)||0) - (Number(f.startOdo)||0);
+  const meterMismatch = f.startOdo && f.endOdo && f.refillAmt && meterDiff !== Number(f.refillAmt);
+
+  if(meterMismatch) {
+    notify(`⚠ Meter mismatch: meter=${fmt(meterDiff)}L, refill=${fmt(Number(f.refillAmt))}L — flagged on Dashboard`, 'err');
+  }
+
+  const refillId = genRF();
+  const rec = {...f, id:refillId, submittedAt:new Date().toISOString(), totalAfter, sealCheck,
+    meterMismatch: meterMismatch || false, meterDiff,
+    refillAmt:Number(f.refillAmt), fuelRemaining:Number(f.fuelRemaining),
+    startOdo:Number(f.startOdo)||0, endOdo:Number(f.endOdo)||0};
+  state.refills.push(rec);
+
+  // Log maintenance flags for NO_SEAL / NO_CAP
+  ['Left','Right','Battery'].forEach(side => {
+    const val = side==='Battery' ? f.oldSealBattery : f[`oldSeal${side}`];
+    if(val==='NO_SEAL'||val==='NO_CAP') {
+      const existing = state.maintenanceFlags.find(m=>m.trainCode===f.trainCode&&m.side===side&&m.issue===val&&!m.fixed);
+      if(!existing) {
+        state.maintenanceFlags.push({
+          id: 'MX-'+Date.now()+'-'+side,
+          trainCode: f.trainCode,
+          issue: val,
+          side,
+          detectedAt: f.date,
+          refillId,
+          fixed: false,
+          fixedAt: null,
+        });
+      }
+    }
+  });
+
+  state.savedRefill = rec;
+  state.refillForm = {date:today(),trainCode:'',station:'',fuelType:'',invoiceNo:'',startOdo:'',endOdo:'',operator:'',fuelRemaining:'',refillAmt:'',oldSealLeft:'',oldSealRight:'',oldSealBattery:'',newSealLeft:'',newSealRight:'',newSealBattery:'',battOldInput:''};
+  save();
+  notify(`Refill saved — ${rec.trainCode} @ ${rec.station} (${fmt(rec.refillAmt)}L)`);
+  render();
+}
+
+// ── Refill Log ─────────────────────────────────────────────────────────────
+function logSetSort(col) {
+  if(state.logSort === col) state.logSortDir = state.logSortDir==='asc'?'desc':'asc';
+  else { state.logSort = col; state.logSortDir = 'asc'; }
+  render();
+}
+
+function logDragStart(e, idx) {
+  state._dragIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function logDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('tr.log-row').forEach(r => r.classList.remove('drag-over'));
+}
+function logDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('tr.log-row').forEach(r => r.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function logDrop(e, toIdx) {
+  e.preventDefault();
+  const fromIdx = state._dragIdx;
+  if(fromIdx == null || fromIdx === toIdx) return;
+  const moved = state.refills.splice(fromIdx, 1)[0];
+  state.refills.splice(toIdx, 0, moved);
+  state._dragIdx = null;
+  save();
+  render();
+}
+
+function renderRefillLog() {
+  const fS=state.logStation, fT=state.logTrain, fP=state.logPeriod, fFT=state.logFuelType||'';
+
+  // Filter — keep track of real indices in state.refills
+  const indexed = state.refills.map((r, i) => ({r, i}));
+  const filteredIdx = indexed.filter(({r}) => {
+    if(fS && r.station!==fS) return false;
+    if(fT && r.trainCode!==fT) return false;
+    if(fFT && r.fuelType!==fFT) return false;
+    if(fP==='Custom') return inRange(r.date, state.logFrom, state.logTo);
+    return inPeriod(r.date, fP);
+  });
+
+  // Sort
+  const col = state.logSort || 'invoiceNo';
+  const dir = state.logSortDir || 'asc';
+  const sortVal = r => {
+    if(col==='invoiceNo') {
+      // Natural sort: split prefix letters from trailing number
+      const inv = r.invoiceNo || '';
+      const m = inv.match(/^(.*?)(\d+)$/);
+      return m ? [m[1], parseInt(m[2],10)] : [inv, 0];
+    }
+    if(col==='date')       return r.date||'';
+    if(col==='trainCode')  return r.trainCode||'';
+    if(col==='station')    return r.station||'';
+    if(col==='refillAmt')  return Number(r.refillAmt)||0;
+    if(col==='operator')   return r.operator||'';
+    if(col==='sealCheck')  return r.sealCheck||'';
+    return '';
+  };
+
+  const sorted = [...filteredIdx].sort((a, b) => {
+    const va = sortVal(a.r), vb = sortVal(b.r);
+    let cmp;
+    if(Array.isArray(va)) {
+      cmp = va[0] < vb[0] ? -1 : va[0] > vb[0] ? 1 : va[1] - vb[1];
+    } else if(typeof va === 'number') {
+      cmp = va - vb;
+    } else {
+      cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    }
+    return dir==='asc' ? cmp : -cmp;
+  });
+
+  // Header helper
+  const th = (label, sortKey, extraStyle='') => {
+    const active = col===sortKey;
+    const arrow = active ? (dir==='asc'?'▲':'▼') : '';
+    return `<th onclick="logSetSort('${sortKey}')"
+      style="cursor:pointer;user-select:none;white-space:nowrap;${extraStyle}${active?'color:#f59e0b;':''}">
+      ${label}${arrow?`<span style="font-size:8px;margin-left:3px;color:#f59e0b">${arrow}</span>`:''}
+    </th>`;
+  };
+  const thPlain = (label, extraStyle='') => `<th style="${extraStyle}">${label}</th>`;
+
+  const rows = sorted.map(({r, i}) => {
+    const km = r.endOdo>r.startOdo ? r.endOdo-r.startOdo : null;
+    const battOld = r.oldSealBattery==='NO_SEAL'
+      ? '<span style="color:#f87171;font-weight:700">NO SEAL</span>'
+      : r.oldSealBattery ? `<span style="color:#7dd3fc;font-family:monospace">${r.oldSealBattery}</span>` : '<span style="color:#333">—</span>';
+    const battNew = r.newSealBattery==='NO_SEAL'
+      ? '<span style="color:#f87171;font-weight:700">NO SEAL</span>'
+      : r.newSealBattery ? `<span style="color:#93c5fd;font-family:monospace">${r.newSealBattery}</span>` : '<span style="color:#333">—</span>';
+    return `<tr class="log-row" draggable="true"
+      ondragstart="logDragStart(event,${i})"
+      ondragend="logDragEnd(event)"
+      ondragover="logDragOver(event,${i})"
+      ondrop="logDrop(event,${i})"
+      style="cursor:grab;transition:background .1s">
+      <td style="color:#333;font-size:14px;text-align:center;cursor:grab;padding:0 6px" title="Drag to reorder">⠿</td>
+      <td style="color:#666;white-space:nowrap">${r.date}</td>
+      <td style="color:#f59e0b;font-weight:600">${r.trainCode}</td>
+      <td style="color:#7dd3fc;font-size:10px">${r.station}</td>
+      <td style="color:#38bdf8;font-size:10px">${r.fuelType||'—'}</td>
+      <td style="color:#c0c0c0;font-weight:600">${r.invoiceNo||'—'}</td>
+      <td style="color:#555;text-align:right">${r.startOdo?fmt(r.startOdo):'—'}</td>
+      <td style="color:#555;text-align:right">${r.endOdo?fmt(r.endOdo):'—'}</td>
+      <td style="color:#666;text-align:right">${km?fmt(km):'—'}</td>
+      <td style="color:#888">${r.operator}</td>
+      <td style="text-align:right;color:#666">${fmt(r.fuelRemaining)}</td>
+      <td style="text-align:right;font-weight:700;color:#ef4444;font-family:'Barlow Condensed',sans-serif;font-size:14px">${fmt(r.refillAmt)}</td>
+      <td style="text-align:right;color:#999">${fmt(r.totalAfter)}</td>
+      <td style="color:#555;font-size:10px">${r.oldSealLeft||'—'}</td>
+      <td style="color:#555;font-size:10px">${r.oldSealRight||'—'}</td>
+      <td style="font-size:10px">${battOld}</td>
+      <td style="color:#777;font-size:10px">${r.newSealLeft||'—'}</td>
+      <td style="color:#777;font-size:10px">${r.newSealRight||'—'}</td>
+      <td style="font-size:10px">${battNew}</td>
+      <td>${sealBadgeHTML(r.sealCheck)}</td>
+      <td style="white-space:nowrap">
+        <button onclick="editRefill(${i})" style="background:none;border:1px solid #1a2a1a;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer;margin-right:4px" onmouseover="this.style.background='#1a2a1a';this.style.color='#4ade80'" onmouseout="this.style.background='none';this.style.color='#555'">✎</button>
+        <button onclick="deleteRefill(${i})" style="background:none;border:1px solid #2a1010;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.background='#2a1010';this.style.color='#f87171'" onmouseout="this.style.background='none';this.style.color='#555'">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="section-title">Refill Log</div>
+    ${state.editRefillIdx != null ? renderRefillEditModal() : ''}
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select style="width:auto;min-width:160px" onchange="state.logStation=this.value;render()">
+        <option value="">All Stations</option>${state.stations.map(s=>`<option value="${s}"${state.logStation===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <select style="width:auto;min-width:120px" onchange="state.logTrain=this.value;render()">
+        <option value="">All Trains</option>${state.trains.map(t=>`<option value="${t}"${state.logTrain===t?' selected':''}>${t}</option>`).join('')}
+      </select>
+      <select style="width:auto;min-width:120px" onchange="state.logFuelType=this.value;render()">
+        <option value="">All Fuel Types</option>${state.fuelTypes.map(f=>`<option value="${f}"${state.logFuelType===f?' selected':''}>${f}</option>`).join('')}
+      </select>
+      ${periodBarHTML(fP,'setLogPeriod',true,'logFrom','logTo',state.logFrom||'',state.logTo||'','logPeriod')}
+      <button onclick="recalculateAll()"
+        style="margin-left:auto;background:#0d1a0d;border:1px solid #22c55e;color:#4ade80;padding:7px 14px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px"
+        onmouseover="this.style.background='#22c55e';this.style.color='#000'"
+        onmouseout="this.style.background='#0d1a0d';this.style.color='#4ade80'"
+        title="Recalculate all seal checks, meter mismatches, totals and maintenance flags for every record">
+        ↻ Recalculate All
+      </button>
+    </div>
+    <div style="font-size:10px;color:#444;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span>Showing <span style="color:#c0c0c0;font-weight:700">${sorted.length}</span> record${sorted.length!==1?'s':''}</span>
+      ${sorted.length>0?`<span>Total refilled: <span style="color:#ef4444;font-weight:700">${fmt(sorted.reduce((a,{r})=>a+Number(r.refillAmt||0),0))} L</span></span>`:''}
+      <span style="color:#333;font-size:9px">⠿ Drag rows to reorder · Click column header to sort</span>
+    </div>
+    <style>
+      tr.log-row:hover { background:#0f0f0f; }
+      tr.log-row.drag-over { background:#1a1500; outline:1px solid #f59e0b; }
+    </style>
+    <div class="card" style="overflow:auto">
+      ${sorted.length===0?'<div class="empty-state">No records</div>':`
+        <table>
+          <thead><tr>
+            ${thPlain('','width:22px')}
+            ${th('Date','date')}
+            ${th('Train','trainCode')}
+            ${thPlain('Station')}
+            ${thPlain('Fuel')}
+            ${th('Invoice ▸','invoiceNo','color:#f59e0b;')}
+            ${thPlain('Meter↑','text-align:right')}
+            ${thPlain('Meter↓','text-align:right')}
+            ${thPlain('KM','text-align:right')}
+            ${th('Operator','operator')}
+            ${thPlain('Tank Rem.','text-align:right')}
+            ${th('Refill (L)','refillAmt','text-align:right')}
+            ${thPlain('Total After','text-align:right')}
+            ${thPlain('Old L')}
+            ${thPlain('Old R')}
+            ${thPlain('Old Bat')}
+            ${thPlain('New L')}
+            ${thPlain('New R')}
+            ${thPlain('New Bat')}
+            ${th('Seal','sealCheck')}
+            ${thPlain('Actions')}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`}
+    </div>`;
+}
+function setLogPeriod(p){ state.logPeriod=p; if(p!=='Custom'){state.logFrom='';state.logTo='';} render(); }
+
+function deleteRefill(idx){
+  const r = state.refills[idx];
+  if(!r){ notify('Record not found','err'); return; }
+  const msg = 'Delete this entry?\n\n' + r.date + '  |  ' + r.trainCode + '  |  ' + r.station + '\nRefill: ' + fmt(r.refillAmt) + ' L  |  Operator: ' + r.operator + '\n\nThis cannot be undone.';
+  if(!window.confirm(msg)) return;
+  state.refills.splice(idx, 1);
+  save();
+  notify('Entry deleted');
+  render();
+}
+
+function editRefill(idx) {
+  const rec = {...state.refills[idx]};
+  state._editOrigTrainCode = rec.trainCode;
+  const prevRec = getPrevRecord(rec.trainCode, rec.date, idx);
+  // If battery matches previous record → lock to NO_CHANGE display
+  // Otherwise → enter CHANGE_MODE with battOldInput = saved old battery code
+  if(prevRec && rec.oldSealBattery && rec.oldSealBattery===prevRec.newSealBattery) {
+    rec.oldSealBattery = 'NO_CHANGE';
+    rec.battOldInput = '';
+  } else if(rec.oldSealBattery && !['NO_CHANGE','CHANGE_MODE','NO_SEAL'].includes(rec.oldSealBattery)) {
+    // Real code saved — show in CHANGE_MODE with old input pre-filled for review
+    rec.battOldInput = rec.oldSealBattery;
+    rec.oldSealBattery = 'CHANGE_MODE';
+  } else {
+    rec.battOldInput = rec.battOldInput||'';
+  }
+  state.editRefillIdx = idx;
+  state.editRefillData = rec;
+  render();
+}
+
+function erSet(k, v) {
+  state.editRefillData[k] = v;
+}
+
+function erSealBtn(field, value, side) {
+  const d = state.editRefillData;
+  const newField = side==='Battery' ? 'newSealBattery' : `newSeal${side}`;
+  const last = getPrevRecord(d.trainCode, d.date, state.editRefillIdx);
+  const lastCode = last ? (side==='Battery' ? (last.newSealBattery||'') : (last[`newSeal${side}`]||'')) : '';
+
+  if(value === 'CLEAR') {
+    d[field] = '';
+    if(side!=='Battery') d[newField] = '';
+  } else if(value === 'NO_CHANGE') {  // battery only
+    d[field] = 'NO_CHANGE';
+    d[newField] = lastCode;
+    d.battOldInput = '';
+  } else if(value === 'CHANGE_MODE') {  // battery only
+    d[field] = 'CHANGE_MODE';
+    d[newField] = '';
+    d.battOldInput = '';
+  } else {
+    // NO_SEAL, NO_CAP
+    d[field] = value;
+    d[newField] = value;
+  }
+  render();
+}
+
+function saveRefillEdit() {
+  const d = state.editRefillData;
+  const idx = state.editRefillIdx;
+  if(!d.date||!d.trainCode||!d.station||!d.operator||!d.refillAmt) { notify('Fill required fields','err'); return; }
+
+  // Resolve all locked seal modes to real codes before saving
+  const prev = getPrevRecord(d.trainCode, d.date, idx);
+
+  if(d.oldSealBattery==='NO_CHANGE') {
+    const v = prev?.newSealBattery||''; d.oldSealBattery=v; d.newSealBattery=v;
+  } else if(d.oldSealBattery==='CHANGE_MODE') {
+    const oldCode = d.battOldInput||'';
+    const lastBatt = prev?.newSealBattery||'';
+    if(lastBatt && !oldCode) { notify('Battery seal: enter old seal code to verify','err'); return; }
+    if(!d.newSealBattery)    { notify('Battery seal: enter new seal code','err'); return; }
+    d.oldSealBattery = oldCode;
+    // newSealBattery already set by erSet
+  } else if(!d.oldSealBattery && !prev) {
+    // First fill — single input stored in battOldInput
+    const v = d.battOldInput||'';
+    d.oldSealBattery = v; d.newSealBattery = v;
+  }
+
+  // Validate seals filled
+  const isSpecialLR = v => v==='NO_SEAL'||v==='NO_CAP';
+  if(!d.oldSealLeft)  { notify('Old Seal Left is required','err'); return; }
+  if(!d.oldSealRight) { notify('Old Seal Right is required','err'); return; }
+  if(!isSpecialLR(d.oldSealLeft)  && !d.newSealLeft)  { notify('New Seal Left is required','err'); return; }
+  if(!isSpecialLR(d.oldSealRight) && !d.newSealRight) { notify('New Seal Right is required','err'); return; }
+
+  // Recalculate derived fields
+  d.refillAmt = Number(d.refillAmt);
+  d.fuelRemaining = Number(d.fuelRemaining)||0;
+  d.totalAfter = d.fuelRemaining + d.refillAmt;
+  d.startOdo = Number(d.startOdo)||0;
+  d.endOdo = Number(d.endOdo)||0;
+  const meterDiff = d.endOdo - d.startOdo;
+  d.meterDiff = meterDiff;
+  d.meterMismatch = d.startOdo && d.endOdo && meterDiff !== d.refillAmt;
+
+  // Recalculate seal check (prev already computed above)
+  const isSpecial = v => v==='NO_SEAL'||v==='NO_CAP';
+  const last = prev; // same filtered list — record before this one
+  if(!last) d.sealCheck = 'FIRST FILL';
+  else if(isSpecial(d.oldSealLeft)||isSpecial(d.oldSealRight)||isSpecial(d.oldSealBattery)) d.sealCheck = 'FAIL';
+  else {
+    const lOk = d.oldSealLeft===last.newSealLeft;
+    const rOk = d.oldSealRight===last.newSealRight;
+    const bOk = !last.newSealBattery || d.oldSealBattery===last.newSealBattery;
+    d.sealCheck = (lOk&&rOk&&bOk) ? 'PASS' : 'FAIL';
+  }
+
+  if(isSpecial(d.oldSealLeft))    { d.newSealLeft    = d.oldSealLeft; }
+  if(isSpecial(d.oldSealRight))   { d.newSealRight   = d.oldSealRight; }
+  if(isSpecial(d.oldSealBattery)) { d.newSealBattery = d.oldSealBattery; }
+
+  state.refills[idx] = d;
+
+  // ── Cascade: recalculate every record for the affected train in date order ──
+  // Any record after (or on) the edited date may now have a different "previous record",
+  // so sealCheck, meterMismatch, totalAfter, and maintenance flags could all be stale.
+  const isSpecialV = v => v==='NO_SEAL'||v==='NO_CAP';
+  const affectedTrains = new Set([d.trainCode]);
+  // If the original record had a different trainCode, cascade that train too
+  if(state._editOrigTrainCode && state._editOrigTrainCode !== d.trainCode) {
+    affectedTrains.add(state._editOrigTrainCode);
+  }
+  state._editOrigTrainCode = null;
+
+  affectedTrains.forEach(tc => {
+    // Sort all records for this train by date, then by array index
+    const sorted = state.refills
+      .map((r, i) => ({r, i}))
+      .filter(({r}) => r.trainCode === tc)
+      .sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+
+    sorted.forEach(({r, i}, pos) => {
+      const prevR = pos > 0 ? sorted[pos - 1].r : null;
+
+      // Recalculate totalAfter
+      r.totalAfter = (Number(r.fuelRemaining)||0) + (Number(r.refillAmt)||0);
+
+      // Recalculate meterDiff / meterMismatch
+      const md = (Number(r.endOdo)||0) - (Number(r.startOdo)||0);
+      r.meterDiff = md;
+      r.meterMismatch = r.startOdo && r.endOdo && md !== Number(r.refillAmt);
+
+      // Recalculate sealCheck
+      if(!prevR) {
+        r.sealCheck = 'FIRST FILL';
+      } else if(isSpecialV(r.oldSealLeft)||isSpecialV(r.oldSealRight)||isSpecialV(r.oldSealBattery)) {
+        r.sealCheck = 'FAIL';
+      } else {
+        const lOk = r.oldSealLeft  === prevR.newSealLeft;
+        const rOk = r.oldSealRight === prevR.newSealRight;
+        const bOk = !prevR.newSealBattery || r.oldSealBattery === prevR.newSealBattery;
+        r.sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+      }
+
+      // Propagate special seal values to newSeal fields
+      if(isSpecialV(r.oldSealLeft))    r.newSealLeft    = r.oldSealLeft;
+      if(isSpecialV(r.oldSealRight))   r.newSealRight   = r.oldSealRight;
+      if(isSpecialV(r.oldSealBattery)) r.newSealBattery = r.oldSealBattery;
+
+      state.refills[i] = r;
+    });
+
+    // Rebuild maintenance flags for this train from scratch
+    state.maintenanceFlags = state.maintenanceFlags.filter(m => m.trainCode !== tc);
+    sorted.forEach(({r}) => {
+      ['Left','Right','Battery'].forEach(side => {
+        const val = side==='Battery' ? r.oldSealBattery : r[`oldSeal${side}`];
+        if(isSpecialV(val)) {
+          const existing = state.maintenanceFlags.find(m =>
+            m.trainCode===tc && m.side===side && m.issue===val && !m.fixed
+          );
+          if(!existing) {
+            state.maintenanceFlags.push({
+              id: 'MX-'+Date.now()+'-'+side+'-'+r.id,
+              trainCode: tc, issue: val, side,
+              detectedAt: r.date, refillId: r.id,
+              fixed: false, fixedAt: null,
+            });
+          }
+        }
+      });
+    });
+  });
+
+  state.editRefillIdx = null;
+  state.editRefillData = null;
+  save();
+  notify('Record updated — all downstream records recalculated');
+  render();
+}
+
+function cancelRefillEdit() {
+  state.editRefillIdx = null;
+  state.editRefillData = null;
+  render();
+}
+
+function renderRefillEditModal() {
+  const d = state.editRefillData;
+  const opCode = (d.operator||'').startsWith('EM') ? d.operator.slice(2) : d.operator;
+  const prefix = state.invoicePrefixes[d.station]||null;
+  const invNum = prefix && d.invoiceNo.startsWith(prefix) ? d.invoiceNo.slice(prefix.length) : d.invoiceNo;
+  const meterDiff = (Number(d.endOdo)||0)-(Number(d.startOdo)||0);
+  const refillAmt = Number(d.refillAmt)||0;
+  const meterOK = d.startOdo && d.endOdo && refillAmt && meterDiff===refillAmt;
+  const meterBad = d.startOdo && d.endOdo && refillAmt && meterDiff!==refillAmt;
+  return `<div style="background:#0d0d0d;border:1px solid #f59e0b;border-radius:6px;padding:20px;margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#f59e0b;font-weight:700">✎ Editing Refill Record #${state.editRefillIdx+1}</div>
+      <button onclick="cancelRefillEdit()" style="background:none;border:1px solid #333;color:#555;padding:4px 12px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.color='#fff';this.style.borderColor='#555'" onmouseout="this.style.color='#555';this.style.borderColor='#333'">✕ Cancel</button>
+    </div>
+    <div class="grid-3" style="margin-bottom:13px">
+      ${fieldHTML('Date *',`<input type="date" value="${d.date}" onchange="erSet('date',this.value)">`)}
+      ${fieldHTML('Train Code *',`<select onchange="erSet('trainCode',this.value)"><option value="">Select…</option>${state.trains.map(t=>`<option value="${t}"${d.trainCode===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+      ${fieldHTML('Station *',`<select onchange="erSet('station',this.value)"><option value="">Select…</option>${state.stations.map(s=>`<option value="${s}"${d.station===s?' selected':''}>${s}</option>`).join('')}</select>`)}
+    </div>
+    <div class="grid-3" style="margin-bottom:13px">
+      ${fieldHTML('Invoice No.',prefix
+        ? `<div style="display:flex;align-items:center;gap:0"><span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#7dd3fc;font-weight:700;white-space:nowrap">${prefix}</span><input type="text" value="${invNum}" placeholder="Number" oninput="erSet('invoiceNo','${prefix}'+this.value)" style="border-radius:0 4px 4px 0;border-left:none"></div>`
+        : `<input type="text" value="${d.invoiceNo}" placeholder="Optional" oninput="erSet('invoiceNo',this.value)">`
+      )}
+      ${fieldHTML('Station Meter Start',`<input type="number" value="${d.startOdo||''}" placeholder="reading" oninput="erSet('startOdo',this.value)">`)}
+      ${fieldHTML('Station Meter End',`<input type="number" value="${d.endOdo||''}" placeholder="reading" oninput="erSet('endOdo',this.value)">`)}
+    </div>
+    ${meterBad?`<div style="background:#1a0800;border:1px solid #f59e0b;border-radius:4px;padding:8px 14px;margin-bottom:13px;font-size:11px;color:#fbbf24">⚠ Meter (${fmt(meterDiff)}L) ≠ Refill (${fmt(refillAmt)}L) — diff: ${fmt(refillAmt-meterDiff)}L</div>`
+    :meterOK?`<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:7px 14px;margin-bottom:13px;font-size:11px;color:#4ade80">✓ Meter matches refill (${fmt(refillAmt)}L)</div>`:''}
+    <div class="grid-4" style="margin-bottom:13px">
+      ${fieldHTML('Operator *',`<div style="display:flex;align-items:center;gap:0">
+        <span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#f59e0b;font-weight:700">EM</span>
+        <input type="text" value="${opCode}" placeholder="Code" oninput="erSet('operator','EM'+this.value.toUpperCase().replace(/^EM/i,''))" style="border-radius:0 4px 4px 0;border-left:none">
+      </div>`)}
+      ${fieldHTML('Train Tank Remaining (L)',`<input type="number" value="${d.fuelRemaining||''}" min="0" oninput="erSet('fuelRemaining',this.value)">`)}
+      ${fieldHTML('Refill Amount (L) *',`<input type="number" value="${d.refillAmt||''}" min="1" oninput="erSet('refillAmt',this.value)">`)}
+      ${fieldHTML('Fuel Type',`<select onchange="erSet('fuelType',this.value)"><option value="">Select…</option>${state.fuelTypes.map(f=>`<option value="${f}"${d.fuelType===f?' selected':''}>${f}</option>`).join('')}</select>`)}
+    </div>
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:5px;padding:14px;margin-bottom:13px">
+      <div class="field-label" style="margin-bottom:10px">Seal Codes</div>
+      ${(()=>{
+        const prevRec = getPrevRecord(d.trainCode, d.date, state.editRefillIdx);
+
+        // Left & Right: type-to-verify with live match feedback
+        const sideHTML = ['Left','Right'].map(side => {
+          const fk  = `oldSeal${side}`;
+          const nk  = `newSeal${side}`;
+          const oldV = d[fk]||'';
+          const newV = d[nk]||'';
+          const lastCode = prevRec ? (prevRec[`newSeal${side}`]||'') : '';
+          const isNoSeal  = oldV==='NO_SEAL';
+          const isNoCap   = oldV==='NO_CAP';
+          const isSpecial = isNoSeal||isNoCap;
+          const matched   = !isSpecial && oldV && lastCode && oldV===lastCode;
+          const mismatch  = !isSpecial && oldV && lastCode && oldV!==lastCode;
+          const sBtn = (label, val, color, active) =>
+            `<button onclick="erSealBtn('${fk}','${val}','${side}')"
+              style="padding:3px 7px;font-size:8px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;white-space:nowrap;
+              background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#444'}"
+              onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+              onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#444'}'">
+              ${label}</button>`;
+          return `<div style="background:#0d0d0d;border:1px solid ${mismatch?'#ef4444':matched?'#166534':'#1a1a1a'};border-radius:5px;padding:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555">⛽ ${side} Tank</span>
+              ${lastCode ? `<span style="font-size:9px;color:#2a2a2a">Expected: <span style="font-family:monospace;font-size:10px;font-weight:700;color:${matched?'#4ade80':mismatch?'#f87171':'#444'}">${lastCode}</span></span>`
+                         : `<span style="font-size:9px;color:#222">No previous code</span>`}
+            </div>
+            <div class="field-label" style="margin-bottom:4px;font-size:8px">Old Seal *</div>
+            ${isSpecial
+              ? `<div style="background:${isNoSeal?'#1a0000':'#1a0800'};border:1px solid ${isNoSeal?'#ef4444':'#f97316'};border-radius:3px;padding:7px 10px;font-size:10px;color:${isNoSeal?'#f87171':'#fb923c'};font-weight:600;margin-bottom:4px">⚠ ${isNoSeal?'No seal':'No cap'}</div>`
+              : `<input type="text" value="${oldV}" placeholder="${lastCode?'Type code to verify…':'Enter seal code…'}"
+                  oninput="erSet('${fk}',this.value.toUpperCase())"
+                  style="font-size:12px;padding:7px 10px;font-family:monospace;margin-bottom:4px;
+                  ${matched?'border-color:#22c55e;background:#001208':mismatch?'border-color:#ef4444;background:#1a0000':''}">`
+            }
+            ${matched ? `<div style="font-size:9px;color:#4ade80;font-weight:600;margin-bottom:4px">✓ Matches last record</div>` : ''}
+            ${mismatch ? `<div style="font-size:9px;color:#f87171;font-weight:600;margin-bottom:4px">⚠ Mismatch detected</div>` : ''}
+            <div style="display:flex;gap:3px;margin-bottom:7px">
+              ${sBtn('No Seal','NO_SEAL','#f87171',isNoSeal)}
+              ${sBtn('No Cap','NO_CAP','#fb923c',isNoCap)}
+              ${isSpecial ? sBtn('Clear','CLEAR','#888',false) : ''}
+            </div>
+            <div class="field-label" style="margin-bottom:4px;font-size:8px">New Seal *</div>
+            ${isSpecial
+              ? `<div style="background:#111;border:1px solid #1e1e1e;border-radius:3px;padding:6px 9px;font-size:10px;color:#2a2a2a">N/A</div>`
+              : `<input type="text" value="${newV}" placeholder="New seal code after refill"
+                  oninput="erSet('${nk}',this.value.toUpperCase())"
+                  style="font-size:12px;padding:7px 10px;font-family:monospace">`
+            }
+          </div>`;
+        }).join('');
+
+        // Battery seal
+        const battVal    = d.oldSealBattery||'';
+        const lastBatt   = prevRec ? (prevRec.newSealBattery||'') : '';
+        const isNoChange = battVal==='NO_CHANGE';
+        const isCM       = battVal==='CHANGE_MODE';
+        const isNoSealB  = battVal==='NO_SEAL';
+        const isTypedB   = battVal && !['NO_CHANGE','CHANGE_MODE','NO_SEAL'].includes(battVal);
+        const isChangeB  = isCM || isTypedB;
+        // battOldInput stored in editRefillData for CHANGE_MODE verification
+        const erBattOldIn = d.battOldInput||'';
+
+        // Per-battery status for edit modal
+        const battOldEff_er = isNoChange ? lastBatt : isCM ? erBattOldIn : isTypedB ? battVal : '';
+        let erBattStatus = '';
+        if(isNoSealB)                                        erBattStatus = 'FAIL';
+        else if(!prevRec && !lastBatt)                       erBattStatus = 'FIRST FILL';
+        else if(lastBatt && !battOldEff_er && (isCM||isNoChange)) erBattStatus = 'MISSING';
+        else if(battOldEff_er && lastBatt) erBattStatus = battOldEff_er===lastBatt ? 'PASS' : 'FAIL';
+        else if(!lastBatt && battOldEff_er) erBattStatus = 'FIRST FILL';
+        const erBattColor = {PASS:'#4ade80',FAIL:'#f87171','FIRST FILL':'#38bdf8',MISSING:'#f59e0b'}[erBattStatus]||'';
+        const erBattBadge = erBattStatus
+          ? `<span style="font-size:8px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:${erBattColor}22;border:1px solid ${erBattColor};color:${erBattColor}">${erBattStatus}</span>` : '';
+
+        const bBtn = (label, val, color, active) =>
+          `<button onclick="erSealBtn('oldSealBattery','${val}','Battery')"
+            style="flex:1;padding:5px 3px;font-size:9px;font-weight:700;text-transform:uppercase;border-radius:3px;cursor:pointer;
+            background:${active?color+'22':'#0d0d0d'};border:1px solid ${active?color:'#1e1e1e'};color:${active?color:'#333'}"
+            onmouseover="this.style.borderColor='${color}';this.style.color='${color}'"
+            onmouseout="this.style.borderColor='${active?color:'#1e1e1e'}';this.style.color='${active?color:'#333'}'">
+            ${label}</button>`;
+
+        let erBattBody;
+        if(isNoChange) {
+          erBattBody = `<div style="background:#060e14;border:1px solid #1a3a5a;border-radius:3px;padding:9px 13px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:8px;color:#1a4060;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Seal Code (unchanged)</div>
+              <span style="font-size:13px;color:#7dd3fc;font-weight:700;font-family:monospace;letter-spacing:2px">${lastBatt||'—'}</span>
+            </div>
+            <span style="font-size:8px;color:#1e3a5f;font-weight:700">🔒 UNCHANGED</span>
+          </div>`;
+        } else if(isNoSealB) {
+          erBattBody = `<div style="background:#1a0000;border:1px solid #ef4444;border-radius:3px;padding:8px 10px;font-size:9px;color:#f87171;font-weight:600">⚠ No battery seal fitted — train flagged for maintenance</div>`;
+        } else if(isCM || isTypedB) {
+          // Split inputs
+          const erOldMatch = erBattOldIn && lastBatt && erBattOldIn===lastBatt;
+          const erOldBad   = erBattOldIn && lastBatt && erBattOldIn!==lastBatt;
+          const erNewVal   = d.newSealBattery||'';
+          erBattBody = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">
+                  ${lastBatt ? 'Old Seal — verify code on battery *' : 'Current Seal Code'}
+                </div>
+                <input type="text" value="${erBattOldIn}" placeholder="${lastBatt?'Type seal to verify…':'Enter battery seal code…'}"
+                  oninput="erSet('battOldInput',this.value.toUpperCase())"
+                  style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px;
+                  ${erOldMatch?'border-color:#22c55e;background:#001208':erOldBad?'border-color:#ef4444;background:#1a0000':''}">
+                ${erOldMatch ? `<div style="margin-top:3px;font-size:9px;color:#4ade80;font-weight:600">✓ Matches expected</div>` : ''}
+                ${erOldBad   ? `<div style="margin-top:3px;font-size:9px;color:#f87171;font-weight:600">⚠ Mismatch — check seal</div>` : ''}
+                ${erBattStatus==='MISSING' ? `<div style="margin-top:3px;font-size:9px;color:#f59e0b;font-weight:600">⚠ Old seal code required</div>` : ''}
+              </div>
+              <div>
+                <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">New Seal — code being fitted *</div>
+                <input type="text" value="${erNewVal}" placeholder="Enter new seal code…"
+                  oninput="erSet('newSealBattery',this.value.toUpperCase())"
+                  style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px;${erNewVal?'border-color:#f59e0b':''}">
+                ${erNewVal ? `<div style="margin-top:3px;font-size:9px;color:#f59e0b;font-weight:600">New: ${erNewVal}</div>` : ''}
+              </div>
+            </div>`;
+        } else {
+          erBattBody = `
+            <div>
+              <div style="font-size:8px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Battery Seal Code *</div>
+              <input type="text" value="${erBattOldIn}" placeholder="Enter battery seal code…"
+                oninput="erSet('battOldInput',this.value.toUpperCase());erSet('newSealBattery',this.value.toUpperCase())"
+                style="font-size:12px;padding:7px 10px;font-family:monospace;letter-spacing:1px">
+            </div>`;
+        }
+
+        return `<div class="grid-2" style="margin-bottom:10px;gap:8px">${sideHTML}</div>
+          <div style="background:#080c14;border:1px solid ${isNoSealB?'#3a0000':erBattStatus==='FAIL'?'#3a0000':erBattStatus==='MISSING'?'#2a1a00':isChangeB?'#1e1e00':'#1a2233'};border-radius:4px;padding:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div class="field-label" style="margin:0;color:#7dd3fc">🔋 Battery Box Seal</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                ${lastBatt
+                  ? `<span style="font-size:9px;color:#1e3a5f">Expected: <span style="color:#2a5a80;font-family:monospace;font-weight:700">${lastBatt}</span></span>`
+                  : `<span style="font-size:9px;color:#333">No previous record</span>`}
+                ${erBattBadge}
+              </div>
+            </div>
+            <div style="display:flex;gap:3px;margin-bottom:8px">
+              ${lastBatt ? bBtn('✓ No Change','NO_CHANGE','#4ade80',isNoChange) : ''}
+              ${bBtn('✎ Change Seal','CHANGE_MODE','#f59e0b',isChangeB)}
+              ${bBtn('✕ No Seal','NO_SEAL','#f87171',isNoSealB)}
+            </div>
+            ${erBattBody}
+          </div>`;
+      })()}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button onclick="cancelRefillEdit()" style="background:none;border:1px solid #333;color:#777;padding:9px 20px;border-radius:4px;font-size:11px;cursor:pointer">Cancel</button>
+      <button onclick="saveRefillEdit()" style="background:#f59e0b;color:#000;border:none;padding:9px 24px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer" onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">SAVE CHANGES</button>
+    </div>
+  </div>`;
+}
+
+// ── Inventory ─────────────────────────────────────────────────────────────
+function renderInventory() {
+  const ft = state.invFuelTab;
+  const ftColor = {Diesel:'#f59e0b',Petroleum:'#38bdf8',LPG:'#a78bfa'}[ft]||'#f59e0b';
+
+  const tB=state.stations.reduce((a,s)=>a+Number(getInv(s,ft).beginStock||0),0);
+  const tR=state.stations.reduce((a,s)=>a+Number(getInv(s,ft).received||0),0);
+  const tD=state.stations.reduce((a,s)=>a+dispensedFor(s,ft),0);
+  const tE=state.stations.reduce((a,s)=>a+endingStock(s,ft),0);
+
+  const rows=state.stations.map(s=>{
+    const inv=getInv(s,ft);
+    const d=dispensedFor(s,ft); const e=endingStock(s,ft);
+    const c=e>5000?'#4ade80':e>1000?'#fbbf24':'#ef4444';
+    return `<tr>
+      <td style="color:#e2e8f0;font-weight:500">${s}</td>
+      <td style="text-align:right"><input type="number" class="inv-input" min="0" value="${inv.beginStock||0}" onblur="updateBeginStock('${s}','${ft}',this.value)"></td>
+      <td style="text-align:right;color:#4ade80;font-family:monospace">+${fmt(inv.received||0)}</td>
+      <td style="text-align:right;color:#f87171;font-family:monospace">-${fmt(d)}</td>
+      <td style="text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:${c}">${fmt(e)}</td>
+      <td style="text-align:right;font-size:10px;color:${c}">${e>5000?'● Sufficient':e>1000?'● Low':'● Critical'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="section-title">Fuel Inventory by Station</div>
+    <div style="font-size:10px;color:#444;margin-bottom:14px">Dispensed auto-calculated from refill entries. Edit beginning stock directly.</div>
+    <div class="tab-bar" style="margin-bottom:16px">
+      ${state.fuelTypes.map(f=>{
+        const fc={Diesel:'#f59e0b',Petroleum:'#38bdf8',LPG:'#a78bfa'}[f]||'#f59e0b';
+        return `<button class="tab-btn${ft===f?' active':''}" style="${ft===f?`color:${fc};border-bottom-color:${fc}`:''}" onclick="state.invFuelTab='${f}';render()">${f}</button>`;
+      }).join('')}
+    </div>
+    <div class="card" style="overflow:auto">
+      <table>
+        <thead><tr>${['Station','Begin Stock (L)','Received (L)','Dispensed (L)','Ending Stock (L)','Status'].map((h,i)=>`<th style="text-align:${i===0?'left':'right'}">${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td style="padding:12px 11px;font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase">${ft} Total</td>
+          <td style="text-align:right;padding:12px 11px;color:#777">${fmt(tB)}</td>
+          <td style="text-align:right;padding:12px 11px;color:#4ade80">+${fmt(tR)}</td>
+          <td style="text-align:right;padding:12px 11px;color:#f87171">-${fmt(tD)}</td>
+          <td style="text-align:right;padding:12px 11px;font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:${ftColor}">${fmt(tE)}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+}
+function updateBeginStock(station, fuelType, val) {
+  const k = invKey(station, fuelType);
+  if(!state.inventory[k]) state.inventory[k]={beginStock:0,received:0};
+  state.inventory[k].beginStock=Number(val);
+  save();
+}
+
+// ── Request Form ───────────────────────────────────────────────────────────
+function renderRequest() {
+  const f=state.reqForm||{station:'',fuelType:'',quantity:'',requestDate:today(),requestedBy:'',notes:''};
+  const banner=state.savedRequest?`<div style="background:#001208;border:1px solid #22c55e;border-radius:5px;padding:11px;margin-bottom:16px;color:#4ade80;font-size:12px">✓ Submitted — check Orders tab</div>`:'';
+  const byCode=f.requestedBy.startsWith('EM')?f.requestedBy.slice(2):f.requestedBy;
+  return `
+    <div style="max-width:520px">
+      <div class="section-title">Fuel Request Form</div>
+      ${banner}
+      <div class="card" style="padding:20px;display:grid;gap:15px">
+        <div class="grid-2">
+          ${fieldHTML('Station *',`<select onchange="reqSet('station',this.value)"><option value="">Select…</option>${state.stations.map(s=>`<option value="${s}"${f.station===s?' selected':''}>${s}</option>`).join('')}</select>`)}
+          ${fieldHTML('Requested By *',`<div style="display:flex;align-items:center;gap:0">
+            <span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#f59e0b;font-weight:700;white-space:nowrap;letter-spacing:1px">EM</span>
+            <input type="text" value="${byCode}" placeholder="Code (e.g. 001)" oninput="reqByInput(this.value)" style="border-radius:0 4px 4px 0;border-left:none">
+          </div>`)}
+        </div>
+        <div class="grid-2">
+          ${fieldHTML('Fuel Type *',`<select onchange="reqSet('fuelType',this.value)"><option value="">Select…</option>${state.fuelTypes.map(t=>`<option value="${t}"${f.fuelType===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+          ${fieldHTML('Quantity (L) *',`<input type="number" min="1" placeholder="e.g. 5000" value="${f.quantity}" oninput="reqSet('quantity',this.value)">`)}
+        </div>
+        ${fieldHTML('Request Date *',`<input type="date" value="${f.requestDate}" onchange="reqSet('requestDate',this.value)">`)}
+        ${fieldHTML('Notes (optional)',`<textarea rows="3" placeholder="Additional info…" style="resize:vertical" oninput="reqSet('notes',this.value)">${f.notes}</textarea>`)}
+        <button class="btn-primary" onclick="submitRequest()">Submit Request →</button>
+      </div>
+    </div>`;
+}
+function reqSet(k,v){if(!state.reqForm)state.reqForm={station:'',fuelType:'',quantity:'',requestDate:today(),requestedBy:'',notes:''};state.reqForm[k]=v;}
+function reqByInput(v){const code=v.replace(/^EM/i,'');reqSet('requestedBy','EM'+code.toUpperCase());}
+function submitRequest(){
+  const f=state.reqForm||{};
+  if(!f.station||!f.fuelType||!f.quantity||!f.requestedBy){alert('Fill all required fields.');return;}
+  const o={orderNo:genOrd(),...f,status:'Pending',createdAt:new Date().toISOString()};
+  state.orders.push(o);state.savedRequest=true;state.reqForm={station:'',fuelType:'',quantity:'',requestDate:today(),requestedBy:'',notes:''};
+  save();notify(`Request submitted — ${o.orderNo}`);setView('orders');
+}
+
+// ── Orders ─────────────────────────────────────────────────────────────────
+function renderOrders(){
+  const tab=state.ordersTab;
+  const tabs=['All','Pending','Approved','Delivered'];
+  const counts=Object.fromEntries(tabs.map(t=>[t,t==='All'?state.orders.length:state.orders.filter(o=>o.status===t).length]));
+  const list=(tab==='All'?state.orders:state.orders.filter(o=>o.status===tab));
+
+  const cards=[...list].reverse().map(o=>{
+    const idx = state.orders.indexOf(o);
+    const deliv=o.status==='Delivered'?`<div><div class="metric-label">Delivered</div><div class="metric-val" style="color:#4ade80">${fmt(o.deliveredQty)} L</div></div>`:'';
+    const notes=o.notes?`<div><div class="metric-label">Notes</div><div class="metric-val" style="color:#555">${o.notes}</div></div>`:'';
+    const appBtn=o.status==='Pending'?`<button class="btn-approve" onclick="approveOrder('${o.orderNo}')">Approve</button>`:'';
+    return `<div class="order-card">
+      <div>
+        <div class="metric-label">Order No</div>
+        <div style="color:#f59e0b;font-weight:600;font-size:13px">${o.orderNo}</div>
+        <div style="font-size:9px;color:#2a2a2a;margin-top:3px">${o.requestDate}</div>
+      </div>
+      <div class="order-meta">
+        <div><div class="metric-label">Station</div><div class="metric-val" style="color:#c0c0c0">${o.station}</div></div>
+        <div><div class="metric-label">Requested By</div><div class="metric-val" style="color:#f59e0b">${o.requestedBy||'—'}</div></div>
+        <div><div class="metric-label">Fuel Type</div><div class="metric-val" style="color:#c0c0c0">${o.fuelType}</div></div>
+        <div><div class="metric-label">Qty (L)</div><div class="metric-val big" style="color:#fff">${fmt(o.quantity)} L</div></div>
+        ${deliv}${notes}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        ${statusBadgeHTML(o.status)}
+        ${appBtn}
+        <button onclick="editOrder(${idx})" style="background:none;border:1px solid #1a2a1a;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer;margin-top:2px" onmouseover="this.style.background='#1a2a1a';this.style.color='#4ade80'" onmouseout="this.style.background='none';this.style.color='#555'">✎ Edit</button>
+        <button onclick="deleteOrder(${idx})" style="background:none;border:1px solid #2a1010;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer;margin-top:2px" onmouseover="this.style.background='#2a1010';this.style.color='#f87171'" onmouseout="this.style.background='none';this.style.color='#555'">✕ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="section-title">Order Management</div>
+    ${state.editOrderIdx != null ? renderOrderEditModal() : ''}
+    <div class="tab-bar">
+      ${tabs.map(t=>`<button class="tab-btn${tab===t?' active':''}" onclick="state.ordersTab='${t}';render()">${t} <span style="color:#2a2a2a">${counts[t]}</span></button>`).join('')}
+    </div>
+    ${list.length===0?`<div class="empty-state">No orders</div>`:cards}`;
+}
+function approveOrder(orderNo){
+  state.orders=state.orders.map(o=>o.orderNo===orderNo?{...o,status:'Approved'}:o);
+  save();notify(`Order ${orderNo} approved`);render();
+}
+function deleteOrder(idx){
+  const o=state.orders[idx];
+  if(!o){notify('Order not found','err');return;}
+  const msg='Delete this order?\n\n'+o.orderNo+'  |  '+o.station+'  |  '+o.fuelType+'\nQty: '+fmt(o.quantity)+' L  |  Status: '+o.status+'\n\nThis cannot be undone.';
+  if(!window.confirm(msg)) return;
+  // If delivered, reverse the received stock
+  if(o.status==='Delivered'&&o.deliveredQty){
+    const k=invKey(o.station,o.fuelType);
+    if(state.inventory[k]) state.inventory[k].received=Math.max(0,Number(state.inventory[k].received)-Number(o.deliveredQty));
+  }
+  state.orders.splice(idx,1);
+  save();notify('Order deleted');render();
+}
+
+function editOrder(idx) {
+  state.editOrderIdx = idx;
+  state.editOrderData = {...state.orders[idx]};
+  render();
+}
+
+function eoSet(k, v) {
+  state.editOrderData[k] = v;
+}
+
+function saveOrderEdit() {
+  const d = state.editOrderData;
+  const idx = state.editOrderIdx;
+  if(!d.station||!d.fuelType||!d.quantity||!d.requestDate) { notify('Fill required fields','err'); return; }
+  d.quantity = Number(d.quantity);
+  state.orders[idx] = d;
+  state.editOrderIdx = null;
+  state.editOrderData = null;
+  save();
+  notify('Order updated');
+  render();
+}
+
+function cancelOrderEdit() {
+  state.editOrderIdx = null;
+  state.editOrderData = null;
+  render();
+}
+
+function renderOrderEditModal() {
+  const d = state.editOrderData;
+  const byCode = (d.requestedBy||'').startsWith('EM') ? d.requestedBy.slice(2) : d.requestedBy;
+  return `<div style="background:#0d0d0d;border:1px solid #f59e0b;border-radius:6px;padding:20px;margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#f59e0b;font-weight:700">✎ Editing Order — ${d.orderNo}</div>
+      <button onclick="cancelOrderEdit()" style="background:none;border:1px solid #333;color:#555;padding:4px 12px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.color='#fff';this.style.borderColor='#555'" onmouseout="this.style.color='#555';this.style.borderColor='#333'">✕ Cancel</button>
+    </div>
+    <div class="grid-3" style="margin-bottom:13px">
+      ${fieldHTML('Station *',`<select onchange="eoSet('station',this.value)"><option value="">Select…</option>${state.stations.map(s=>`<option value="${s}"${d.station===s?' selected':''}>${s}</option>`).join('')}</select>`)}
+      ${fieldHTML('Fuel Type *',`<select onchange="eoSet('fuelType',this.value)"><option value="">Select…</option>${state.fuelTypes.map(f=>`<option value="${f}"${d.fuelType===f?' selected':''}>${f}</option>`).join('')}</select>`)}
+      ${fieldHTML('Quantity (L) *',`<input type="number" value="${d.quantity||''}" min="1" placeholder="Litres" oninput="eoSet('quantity',this.value)">`)}
+    </div>
+    <div class="grid-3" style="margin-bottom:13px">
+      ${fieldHTML('Request Date *',`<input type="date" value="${d.requestDate}" onchange="eoSet('requestDate',this.value)">`)}
+      ${fieldHTML('Requested By',`<div style="display:flex;align-items:center;gap:0">
+        <span style="background:#1a1a1a;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:8px 10px;font-size:12px;color:#f59e0b;font-weight:700">EM</span>
+        <input type="text" value="${byCode}" placeholder="Code" oninput="eoSet('requestedBy','EM'+this.value.toUpperCase().replace(/^EM/i,''))" style="border-radius:0 4px 4px 0;border-left:none">
+      </div>`)}
+      ${fieldHTML('Status',`<select onchange="eoSet('status',this.value)">
+        ${['Pending','Approved','Delivered'].map(s=>`<option value="${s}"${d.status===s?' selected':''}>${s}</option>`).join('')}
+      </select>`)}
+    </div>
+    ${fieldHTML('Notes',`<input type="text" value="${d.notes||''}" placeholder="Optional notes" oninput="eoSet('notes',this.value)" style="width:100%;box-sizing:border-box">`)}
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+      <button onclick="cancelOrderEdit()" style="background:none;border:1px solid #333;color:#777;padding:9px 20px;border-radius:4px;font-size:11px;cursor:pointer">Cancel</button>
+      <button onclick="saveOrderEdit()" style="background:#f59e0b;color:#000;border:none;padding:9px 24px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer" onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">SAVE CHANGES</button>
+    </div>
+  </div>`;
+}
+
+// ── GRN ───────────────────────────────────────────────────────────────────
+function renderGRN(){
+  const f=state.grnForm||{orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  const approved=state.orders.filter(o=>o.status==='Approved');
+  const sel=state.orders.find(o=>o.orderNo===f.orderNo);
+
+  // Variance indicator
+  let varianceHTML='';
+  if(sel&&f.deliveredQty){
+    const ordered=Number(sel.quantity);
+    const delivered=Number(f.deliveredQty);
+    const diff=delivered-ordered;
+    const pct=ordered>0?((Math.abs(diff)/ordered)*100).toFixed(1):0;
+    if(diff!==0){
+      const color=diff<0?'#f87171':'#4ade80';
+      const sign=diff>0?'+':'';
+      varianceHTML=`<div style="background:${diff<0?'#1a0000':'#001208'};border:1px solid ${color};border-radius:4px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:11px;color:${color};font-weight:600">⚠ Quantity ${diff<0?'Short':'Over'} — ${sign}${fmt(diff)} L (${sign}${pct}%)</div>
+        <div style="font-size:10px;color:#444">Ordered: ${fmt(ordered)} L · Delivered: ${fmt(delivered)} L</div>
+      </div>`;
+    } else {
+      varianceHTML=`<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:10px 14px;font-size:11px;color:#4ade80">✓ Quantity matches order exactly</div>`;
+    }
+  }
+
+  const preview=sel?`<div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:4px;padding:11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px">
+    <div><div class="metric-label">Station</div><div class="metric-val" style="color:#c0c0c0">${sel.station}</div></div>
+    <div><div class="metric-label">Fuel Type</div><div class="metric-val" style="color:#c0c0c0">${sel.fuelType}</div></div>
+    <div><div class="metric-label">Ordered</div><div class="metric-val big" style="color:#f59e0b">${fmt(sel.quantity)} L</div></div>
+  </div>`:'';
+
+  return `
+    <div style="max-width:520px">
+      <div class="section-title">Goods Received Confirmation</div>
+      <div class="card" style="padding:20px;display:grid;gap:15px">
+        ${fieldHTML('Approved Order *',`<select onchange="grnSelectOrder(this.value)">
+          <option value="">Select order…</option>
+          ${approved.map(o=>`<option value="${o.orderNo}"${f.orderNo===o.orderNo?' selected':''}>${o.orderNo} — ${o.station} (${fmt(o.quantity)}L)</option>`).join('')}
+        </select>${approved.length===0?'<div style="font-size:10px;color:#444;margin-top:5px">No approved orders.</div>':''}`)}
+        ${preview}
+        <div class="grid-2">
+          ${fieldHTML('Delivered Qty (L) *',`<input type="number" id="grn-qty" min="1" placeholder="Actual litres" value="${f.deliveredQty}" oninput="grnQtyInput(this.value)" onblur="grnQtyBlur(this.value)">`)}
+          ${fieldHTML('Delivery Date *',`<input type="date" value="${f.deliveredDate}" onchange="grnDateChange(this.value)">`)}
+        </div>
+        ${varianceHTML}
+        ${fieldHTML('GRN Reference',`<input type="text" id="grn-ref" placeholder="GRN number or note" value="${f.grn}" onblur="grnRefBlur(this.value)">`)}
+        <button class="btn-primary" ${approved.length===0?'disabled':''} onclick="submitGRN()">Confirm Delivery &amp; Update Inventory →</button>
+      </div>
+    </div>`;
+}
+function grnSelectOrder(v){
+  if(!state.grnForm)state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  state.grnForm.orderNo=v;
+  render();
+}
+function grnQtyInput(v){
+  // Update state but DON'T re-render (preserves typing)
+  if(!state.grnForm)state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  state.grnForm.deliveredQty=v;
+  // Update variance inline without full re-render
+  updateGrnVariance(v);
+}
+function grnQtyBlur(v){
+  if(!state.grnForm)state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  state.grnForm.deliveredQty=v;
+  render();
+}
+function grnDateChange(v){
+  if(!state.grnForm)state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  state.grnForm.deliveredDate=v;
+}
+function grnRefBlur(v){
+  if(!state.grnForm)state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  state.grnForm.grn=v;
+}
+function updateGrnVariance(deliveredVal){
+  // Dynamically update variance display without re-rendering
+  const f=state.grnForm||{};
+  const sel=state.orders.find(o=>o.orderNo===f.orderNo);
+  if(!sel||!deliveredVal) return;
+  const ordered=Number(sel.quantity);
+  const delivered=Number(deliveredVal);
+  const diff=delivered-ordered;
+  const pct=ordered>0?((Math.abs(diff)/ordered)*100).toFixed(1):0;
+  const sign=diff>0?'+':'';
+  let html='';
+  if(diff!==0){
+    const color=diff<0?'#f87171':'#4ade80';
+    html=`<div style="background:${diff<0?'#1a0000':'#001208'};border:1px solid ${color};border-radius:4px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <div style="font-size:11px;color:${color};font-weight:600">⚠ Quantity ${diff<0?'Short':'Over'} — ${sign}${fmt(diff)} L (${sign}${pct}%)</div>
+      <div style="font-size:10px;color:#444">Ordered: ${fmt(ordered)} L · Delivered: ${fmt(delivered)} L</div>
+    </div>`;
+  } else {
+    html=`<div style="background:#001208;border:1px solid #22c55e;border-radius:4px;padding:10px 14px;font-size:11px;color:#4ade80">✓ Quantity matches order exactly</div>`;
+  }
+  // Insert/update variance div after the grid-2
+  const content=document.getElementById('content');
+  let vDiv=document.getElementById('grn-variance');
+  if(!vDiv){
+    vDiv=document.createElement('div');vDiv.id='grn-variance';
+    const grnRef=document.getElementById('grn-ref');
+    if(grnRef){const refField=grnRef.closest('div[style]')||grnRef.parentElement.parentElement;refField.parentElement.insertBefore(vDiv,refField);}
+  }
+  if(vDiv)vDiv.innerHTML=html;
+}
+function submitGRN(){
+  const f=state.grnForm||{};
+  if(!f.orderNo||!f.deliveredQty){alert('Fill required fields.');return;}
+  const order=state.orders.find(o=>o.orderNo===f.orderNo);
+  if(!order){notify('Order not found','err');return;}
+  if(order.status!=='Approved'){notify('Must be Approved first','err');return;}
+  state.orders=state.orders.map(o=>o.orderNo===f.orderNo?{...o,status:'Delivered',deliveredQty:Number(f.deliveredQty),deliveredDate:f.deliveredDate,grn:f.grn}:o);
+  const k=invKey(order.station, order.fuelType);
+  if(!state.inventory[k])state.inventory[k]={beginStock:0,received:0};
+  state.inventory[k].received=Number(state.inventory[k].received)+Number(f.deliveredQty);
+  state.grnForm={orderNo:'',deliveredQty:'',deliveredDate:today(),grn:''};
+  save();notify(`${f.deliveredQty}L delivered → ${order.station}`);setView('inventory');
+}
+
+// ── Trains ────────────────────────────────────────────────────────────────
+function renderTrains() {
+  const trains = state.trains;
+  const rows = trains.map((t,i) => {
+    const refillCount = state.refills.filter(r=>r.trainCode===t).length;
+    return `<tr>
+      <td style="color:#555;font-size:10px;text-align:center;padding:8px 10px">${i+1}</td>
+      <td style="color:#f59e0b;font-weight:600;padding:8px 11px">${t}</td>
+      <td style="color:#444;text-align:right;padding:8px 11px">${refillCount>0?`<span style="color:#888">${refillCount} refill${refillCount!==1?'s':''}</span>`:'<span style="color:#2a2a2a">—</span>'}</td>
+      <td style="padding:8px 11px;text-align:right">
+        <button onclick="deleteTrain(${i})" style="background:none;border:1px solid #2a1010;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.background='#2a1010';this.style.color='#f87171'" onmouseout="this.style.background='none';this.style.color='#555'">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="max-width:600px">
+      <div class="section-title">Train Register</div>
+
+      <div class="card" style="padding:18px;margin-bottom:18px">
+        <div class="field-label" style="margin-bottom:8px">Add New Train</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" id="new-train-input" placeholder="Train code (e.g. 6999)" style="flex:1" onkeydown="if(event.key==='Enter')addTrain()">
+          <button onclick="addTrain()" style="background:#f59e0b;color:#000;border:none;padding:9px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">+ Add Train</button>
+        </div>
+      </div>
+
+      <div class="section-title small">${trains.length} Registered Trains</div>
+      <div class="card" style="overflow:auto">
+        ${trains.length===0?'<div class="empty-state">No trains registered</div>':`
+          <table>
+            <thead><tr>
+              <th style="text-align:center">#</th>
+              <th>Train Code</th>
+              <th style="text-align:right">Activity</th>
+              <th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`}
+      </div>
+    </div>`;
+}
+
+function addTrain() {
+  const input = document.getElementById('new-train-input');
+  if(!input) return;
+  const val = input.value.trim().toUpperCase();
+  if(!val) { notify('Enter a train code','err'); return; }
+  if(state.trains.includes(val)) { notify(`"${val}" already exists`,'err'); return; }
+  state.trains.push(val);
+  state.trains.sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}));
+  save();
+  notify(`Train "${val}" added`);
+  render();
+}
+
+function deleteTrain(idx) {
+  const t = state.trains[idx];
+  if(!t) return;
+  const usedIn = state.refills.filter(r=>r.trainCode===t).length;
+  const msg = usedIn > 0
+    ? `Delete "${t}"?\n\nThis train has ${usedIn} refill record${usedIn!==1?'s':''} — those records will remain in the log.\n\nContinue?`
+    : `Delete "${t}"?`;
+  if(!window.confirm(msg)) return;
+  state.trains.splice(idx,1);
+  save();
+  notify(`Train "${t}" removed`);
+  render();
+}
+
+// ── Fuel Types ────────────────────────────────────────────────────────────
+function renderFuelTypes() {
+  const rows = state.fuelTypes.map((f, i) => {
+    const usedIn = state.refills.filter(r => r.fuelType === f).length;
+    const ordersUsed = state.orders.filter(o => o.fuelType === f).length;
+    return `<tr>
+      <td style="color:#555;font-size:10px;text-align:center;padding:8px 10px">${i+1}</td>
+      <td style="color:#38bdf8;font-weight:600;padding:8px 11px">${f}</td>
+      <td style="color:#444;text-align:right;padding:8px 11px">${usedIn>0?`<span style="color:#888">${usedIn} refill${usedIn!==1?'s':''}</span>`:'<span style="color:#2a2a2a">—</span>'}</td>
+      <td style="color:#444;text-align:right;padding:8px 11px">${ordersUsed>0?`<span style="color:#888">${ordersUsed} order${ordersUsed!==1?'s':''}</span>`:'<span style="color:#2a2a2a">—</span>'}</td>
+      <td style="padding:8px 11px;text-align:right">
+        <button onclick="deleteFuelType(${i})" style="background:none;border:1px solid #2a1010;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.background='#2a1010';this.style.color='#f87171'" onmouseout="this.style.background='none';this.style.color='#555'">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="max-width:600px">
+      <div class="section-title">Fuel Type Register</div>
+
+      <div class="card" style="padding:18px;margin-bottom:18px">
+        <div class="field-label" style="margin-bottom:8px">Add New Fuel Type</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" id="new-fueltype-input" placeholder="e.g. Gasoline 95" style="flex:1" onkeydown="if(event.key==='Enter')addFuelType()">
+          <button onclick="addFuelType()" style="background:#38bdf8;color:#000;border:none;padding:9px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#7dd3fc'" onmouseout="this.style.background='#38bdf8'">+ Add</button>
+        </div>
+      </div>
+
+      <div class="section-title small">${state.fuelTypes.length} Fuel Types</div>
+      <div class="card" style="overflow:auto">
+        ${state.fuelTypes.length===0?'<div class="empty-state">No fuel types registered</div>':`
+          <table>
+            <thead><tr>
+              <th style="text-align:center">#</th>
+              <th>Fuel Type</th>
+              <th style="text-align:right">Refill Activity</th>
+              <th style="text-align:right">Order Activity</th>
+              <th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`}
+      </div>
+    </div>`;
+}
+
+function addFuelType() {
+  const input = document.getElementById('new-fueltype-input');
+  if(!input) return;
+  const val = input.value.trim();
+  if(!val) { notify('Enter a fuel type name','err'); return; }
+  if(state.fuelTypes.some(f=>f.toLowerCase()===val.toLowerCase())) { notify(`"${val}" already exists`,'err'); return; }
+  state.fuelTypes.push(val);
+  // Reset invFuelTab if it was on a now-removed type (won't happen here but safety)
+  if(!state.fuelTypes.includes(state.invFuelTab)) state.invFuelTab = state.fuelTypes[0]||'';
+  save();
+  notify(`Fuel type "${val}" added`);
+  render();
+}
+
+function deleteFuelType(idx) {
+  const f = state.fuelTypes[idx];
+  if(!f) return;
+  const refillCount = state.refills.filter(r=>r.fuelType===f).length;
+  const orderCount = state.orders.filter(o=>o.fuelType===f).length;
+  let msg = `Delete fuel type "${f}"?`;
+  if(refillCount||orderCount) msg += `\n\nThis type appears in ${refillCount} refill record${refillCount!==1?'s':''} and ${orderCount} order${orderCount!==1?'s':''}.\nThose records will remain but this type won't appear in dropdowns.\n\nContinue?`;
+  if(!window.confirm(msg)) return;
+  state.fuelTypes.splice(idx, 1);
+  if(state.invFuelTab === f) state.invFuelTab = state.fuelTypes[0]||'';
+  save();
+  notify(`Fuel type "${f}" removed`);
+  render();
+}
+
+// ── Stations ──────────────────────────────────────────────────────────────
+function renderStations() {
+  const editIdx = state.editStationIdx;
+  const rows = state.stations.map((s, i) => {
+    const refillCount = state.refills.filter(r => r.station === s).length;
+    const orderCount = state.orders.filter(o => o.station === s).length;
+    const prefix = state.invoicePrefixes[s] || '—';
+    if(editIdx === i) {
+      return `<tr style="background:#0d0d0d">
+        <td style="color:#555;font-size:10px;text-align:center;padding:8px 10px">${i+1}</td>
+        <td style="padding:6px 8px"><input id="stn-edit-name" type="text" value="${s}" style="width:100%;min-width:140px;box-sizing:border-box"></td>
+        <td style="padding:6px 8px"><input id="stn-edit-prefix" type="text" value="${state.invoicePrefixes[s]||''}" placeholder="e.g. L-" style="width:100%;min-width:80px;box-sizing:border-box"></td>
+        <td style="padding:6px 8px"><input id="stn-edit-max" type="number" min="0" value="${state.stationMaxLitres[s]||''}" placeholder="Litres" style="width:100%;min-width:90px;box-sizing:border-box"></td>
+        <td style="text-align:right;padding:6px 8px;color:#555">${refillCount>0?refillCount+' refills':'—'}</td>
+        <td style="text-align:right;padding:6px 8px;color:#555">${orderCount>0?orderCount+' orders':'—'}</td>
+        <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+          <button onclick="saveStationEdit(${i})" style="background:#f59e0b;color:#000;border:none;padding:4px 12px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;margin-right:4px" onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">✓ Save</button>
+          <button onclick="state.editStationIdx=null;render()" style="background:none;border:1px solid #333;color:#555;padding:4px 10px;border-radius:3px;font-size:10px;cursor:pointer">✕</button>
+        </td>
+      </tr>`;
+    }
+    const maxL = state.stationMaxLitres[s] || 0;
+    const endL = endingStockStation(s);
+    const capPct = maxL > 0 ? Math.min(100, Math.max(0, (endL/maxL)*100)).toFixed(0) : null;
+    const capColor = capPct===null?'#333':capPct>40?'#4ade80':capPct>15?'#f59e0b':'#ef4444';
+    return `<tr>
+      <td style="color:#555;font-size:10px;text-align:center;padding:8px 10px">${i+1}</td>
+      <td style="color:#4ade80;font-weight:600;padding:8px 11px">${s}</td>
+      <td style="color:#7dd3fc;font-family:monospace;font-size:11px;padding:8px 11px">${prefix}</td>
+      <td style="text-align:right;padding:8px 11px">
+        ${maxL>0?`<span style="color:#c0c0c0;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700">${fmt(maxL)}</span><span style="color:#333;font-size:10px"> L</span>`:'<span style="color:#2a2a2a">—</span>'}
+        ${capPct!==null?`<div style="margin-top:4px;background:#1a1a1a;border-radius:2px;height:3px;width:80px;display:inline-block;vertical-align:middle;margin-left:6px"><div style="background:${capColor};height:3px;border-radius:2px;width:${capPct}%"></div></div><span style="color:${capColor};font-size:9px;margin-left:4px">${capPct}%</span>`:''}
+      </td>
+      <td style="color:#444;text-align:right;padding:8px 11px">${refillCount>0?`<span style="color:#888">${refillCount} refill${refillCount!==1?'s':''}</span>`:'<span style="color:#2a2a2a">—</span>'}</td>
+      <td style="color:#444;text-align:right;padding:8px 11px">${orderCount>0?`<span style="color:#888">${orderCount} order${orderCount!==1?'s':''}</span>`:'<span style="color:#2a2a2a">—</span>'}</td>
+      <td style="padding:8px 11px;text-align:right;white-space:nowrap">
+        <button onclick="state.editStationIdx=${i};render()" style="background:none;border:1px solid #1a2a1a;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer;margin-right:4px" onmouseover="this.style.background='#1a2a1a';this.style.color='#4ade80'" onmouseout="this.style.background='none';this.style.color='#555'">✎</button>
+        <button onclick="deleteStation(${i})" style="background:none;border:1px solid #2a1010;color:#555;padding:3px 9px;border-radius:3px;font-size:10px;cursor:pointer" onmouseover="this.style.background='#2a1010';this.style.color='#f87171'" onmouseout="this.style.background='none';this.style.color='#555'">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="max-width:700px">
+      <div class="section-title">Station Register</div>
+
+      <div class="card" style="padding:18px;margin-bottom:18px">
+        <div class="field-label" style="margin-bottom:12px">Add New Station</div>
+        <div class="grid-3" style="margin-bottom:10px">
+          <div>
+            <div class="field-label" style="margin-bottom:6px">Station Name *</div>
+            <input type="text" id="new-stn-name" placeholder="e.g. Fuel Kampot" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')addStation()">
+          </div>
+          <div>
+            <div class="field-label" style="margin-bottom:6px">Invoice Prefix <span style="color:#333;font-weight:400">(optional)</span></div>
+            <input type="text" id="new-stn-prefix" placeholder="e.g. KPT-" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')addStation()">
+          </div>
+          <div>
+            <div class="field-label" style="margin-bottom:6px">Max Capacity (L) <span style="color:#333;font-weight:400">(optional)</span></div>
+            <input type="number" id="new-stn-max" min="0" placeholder="e.g. 50000" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')addStation()">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="addStation()" style="background:#4ade80;color:#000;border:none;padding:9px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer" onmouseover="this.style.background='#86efac'" onmouseout="this.style.background='#4ade80'">+ Add Station</button>
+        </div>
+      </div>
+
+      <div class="section-title small">${state.stations.length} Registered Stations</div>
+      <div class="card" style="overflow:auto">
+        ${state.stations.length===0?'<div class="empty-state">No stations registered</div>':`
+          <table>
+            <thead><tr>
+              <th style="text-align:center">#</th>
+              <th>Station Name</th>
+              <th>Invoice Prefix</th>
+              <th style="text-align:right">Max Capacity</th>
+              <th style="text-align:right">Refill Activity</th>
+              <th style="text-align:right">Order Activity</th>
+              <th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`}
+      </div>
+      <div style="font-size:10px;color:#2a2a2a;margin-top:10px">Invoice prefix is auto-prepended to Invoice No. when this station is selected in the Refill Form.</div>
+    </div>`;
+}
+
+function addStation() {
+  const nameEl = document.getElementById('new-stn-name');
+  const prefixEl = document.getElementById('new-stn-prefix');
+  const maxEl = document.getElementById('new-stn-max');
+  const name = (nameEl?.value||'').trim();
+  const prefix = (prefixEl?.value||'').trim();
+  const maxL = Number(maxEl?.value||0);
+  if(!name) { notify('Enter a station name','err'); return; }
+  if(state.stations.some(s=>s.toLowerCase()===name.toLowerCase())) { notify(`"${name}" already exists`,'err'); return; }
+  state.stations.push(name);
+  if(prefix) state.invoicePrefixes[name] = prefix;
+  if(maxL > 0) state.stationMaxLitres[name] = maxL;
+  save();
+  notify(`Station "${name}" added`);
+  render();
+}
+
+function saveStationEdit(idx) {
+  const nameEl = document.getElementById('stn-edit-name');
+  const prefixEl = document.getElementById('stn-edit-prefix');
+  const maxEl = document.getElementById('stn-edit-max');
+  const newName = (nameEl?.value||'').trim();
+  const newPrefix = (prefixEl?.value||'').trim();
+  const newMax = Number(maxEl?.value||0);
+  if(!newName) { notify('Station name cannot be empty','err'); return; }
+  const oldName = state.stations[idx];
+  if(newName !== oldName && state.stations.some((s,i)=>i!==idx&&s.toLowerCase()===newName.toLowerCase())) {
+    notify(`"${newName}" already exists`,'err'); return;
+  }
+  if(newName !== oldName) {
+    state.refills.forEach(r=>{ if(r.station===oldName) r.station=newName; });
+    state.orders.forEach(o=>{ if(o.station===oldName) o.station=newName; });
+    state.fuelTypes.forEach(ft=>{
+      const oldKey=invKey(oldName,ft), newKey=invKey(newName,ft);
+      if(state.inventory[oldKey]){ state.inventory[newKey]=state.inventory[oldKey]; delete state.inventory[oldKey]; }
+    });
+    if(state.invoicePrefixes[oldName]) { state.invoicePrefixes[newName]=state.invoicePrefixes[oldName]; delete state.invoicePrefixes[oldName]; }
+    if(state.stationMaxLitres[oldName]) { state.stationMaxLitres[newName]=state.stationMaxLitres[oldName]; delete state.stationMaxLitres[oldName]; }
+  }
+  state.stations[idx] = newName;
+  if(newPrefix) state.invoicePrefixes[newName] = newPrefix; else delete state.invoicePrefixes[newName];
+  if(newMax > 0) state.stationMaxLitres[newName] = newMax; else delete state.stationMaxLitres[newName];
+  state.editStationIdx = null;
+  save();
+  notify('Station updated');
+  render();
+}
+
+function deleteStation(idx) {
+  const s = state.stations[idx];
+  if(!s) return;
+  const refillCount = state.refills.filter(r=>r.station===s).length;
+  const orderCount = state.orders.filter(o=>o.station===s).length;
+  let msg = `Delete station "${s}"?`;
+  if(refillCount||orderCount) msg += `\n\nThis station has ${refillCount} refill record${refillCount!==1?'s':''} and ${orderCount} order${orderCount!==1?'s':''}. Those records will remain.\n\nContinue?`;
+  if(!window.confirm(msg)) return;
+  state.stations.splice(idx,1);
+  delete state.invoicePrefixes[s];
+  save();
+  notify(`Station "${s}" removed`);
+  render();
+}
+
+// ── Backup / Restore ──────────────────────────────────────────────────────
+function saveBackup() {
+  const snapshot = {
+    _version: 1,
+    _savedAt: new Date().toISOString(),
+    _label: `FuelControl Backup ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`,
+    refills: state.refills,
+    orders: state.orders,
+    inventory: state.inventory,
+    trains: state.trains,
+    fuelTypes: state.fuelTypes,
+    stations: state.stations,
+    invoicePrefixes: state.invoicePrefixes,
+    stationMaxLitres: state.stationMaxLitres,
+    maintenanceFlags: state.maintenanceFlags,
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = `FuelControl_Backup_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  notify(`Backup saved — FuelControl_Backup_${date}.json`);
+}
+
+function loadBackup(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data._version || !Array.isArray(data.refills)) {
+        notify('Invalid backup file','err'); return;
+      }
+      const savedAt = new Date(data._savedAt).toLocaleString('en-GB');
+      const refillCount = data.refills.length;
+      const orderCount = data.orders?.length || 0;
+      if(!window.confirm(
+        `Load backup?\n\n"${data._label}"\nSaved: ${savedAt}\n\nContains: ${refillCount} refills, ${orderCount} orders\n\n⚠ This will replace ALL current data.\nYour current data will be lost unless you saved a backup first.\n\nContinue?`
+      )) { input.value=''; return; }
+
+      if(data.refills) state.refills = data.refills;
+      if(data.orders) state.orders = data.orders;
+      if(data.inventory) state.inventory = data.inventory;
+      if(data.trains) state.trains = data.trains;
+      if(data.fuelTypes) state.fuelTypes = data.fuelTypes;
+      if(data.stations) state.stations = data.stations;
+      if(data.invoicePrefixes) state.invoicePrefixes = data.invoicePrefixes;
+      if(data.stationMaxLitres) state.stationMaxLitres = data.stationMaxLitres;
+      if(data.maintenanceFlags) state.maintenanceFlags = data.maintenanceFlags;
+
+      save();
+      input.value = '';
+      notify(`Backup loaded — ${refillCount} refills, ${orderCount} orders restored`);
+      setView('dashboard');
+    } catch(err) {
+      notify('Failed to read backup file','err');
+      input.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Share ─────────────────────────────────────────────────────────────────
+function renderShare() {
+  const cfg = state.shareConfig;
+  const hasRefill = !!cfg.refillWebhook;
+  const hasRequest = !!cfg.requestWebhook;
+  const lastSync = cfg.lastSync ? new Date(cfg.lastSync).toLocaleString('en-GB') : 'Never';
+
+  return `
+    <div style="max-width:720px">
+      <div class="section-title">Share Forms</div>
+      <div style="font-size:11px;color:#555;margin-bottom:20px;line-height:1.9">
+        Share a link so drivers or station staff can submit refills and fuel requests directly into your system — using <span style="color:#c0c0c0">Microsoft Power Automate</span> from your Microsoft 365 license. No extra cost, no third-party service.
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div style="background:#0a0a14;border:1px solid #1e1e3a;border-radius:6px;padding:18px;margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#818cf8;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">How It Works</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+          ${['1. Create Flow in Power Automate','2. Copy the HTTP URL here','3. Share the form link','4. Click Sync to import'].map((s,i)=>`
+            <div style="background:#0d0d1a;border:1px solid #1e1e3a;border-radius:5px;padding:12px 8px">
+              <div style="font-size:18px;color:#6366f1;font-weight:800;font-family:'Barlow Condensed',sans-serif;margin-bottom:6px">${i+1}</div>
+              <div style="font-size:9px;color:#555;line-height:1.6">${s}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- SETUP GUIDE -->
+      <div style="background:#080810;border:1px solid #1e1e2a;border-radius:6px;padding:18px;margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#a855f7;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">⚙ Power Automate Setup Guide</div>
+        <div style="font-size:10px;color:#444;line-height:2;counter-reset:steps">
+          ${[
+            `Go to <a href="https://make.powerautomate.com" target="_blank" style="color:#818cf8">make.powerautomate.com</a> and sign in with your Microsoft 365 account`,
+            `Click <span style="color:#c0c0c0">+ Create</span> → <span style="color:#c0c0c0">Instant cloud flow</span> → choose <span style="color:#c0c0c0">"When an HTTP request is received"</span>`,
+            `In the trigger, set Method to <span style="color:#c0c0c0">POST</span>. Paste this JSON schema into the Request Body JSON Schema box:`,
+            `Add a step: <span style="color:#c0c0c0">SharePoint → Create item</span> (or <span style="color:#c0c0c0">Excel Online → Add a row</span>) and map each field`,
+            `Save the flow — copy the <span style="color:#c0c0c0">HTTP POST URL</span> that appears and paste it below`,
+            `Create a <b>second flow</b> the same way for the Request Form, paste that URL below too`,
+          ].map(s=>`<div style="display:flex;gap:10px;margin-bottom:6px"><span style="color:#333;min-width:16px">${['①','②','③','④','⑤','⑥'][arguments[0]??0]}</span><span>${s}</span></div>`).join('')}
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:9px;color:#333;letter-spacing:1px;margin-bottom:6px">JSON SCHEMA FOR REFILL FLOW:</div>
+          <div style="background:#060606;border:1px solid #1a1a1a;border-radius:4px;padding:10px;font-size:9px;color:#3a3a3a;font-family:monospace;line-height:1.7;position:relative">
+            <button onclick="copySchema('refill')" style="position:absolute;top:8px;right:8px;background:#1a1a2a;border:1px solid #2a2a3a;color:#555;padding:3px 8px;border-radius:3px;font-size:9px;cursor:pointer">Copy</button>
+            <span id="schema-refill">${escHtml(JSON.stringify({type:"object",properties:{id:{type:"string"},date:{type:"string"},station:{type:"string"},trainCode:{type:"string"},fuelType:{type:"string"},invoiceNo:{type:"string"},operator:{type:"string"},startOdo:{type:"number"},endOdo:{type:"number"},fuelRemaining:{type:"number"},refillAmt:{type:"number"},totalAfter:{type:"number"},oldSealLeft:{type:"string"},oldSealRight:{type:"string"},newSealLeft:{type:"string"},newSealRight:{type:"string"},submittedAt:{type:"string"}},required:["id","date","station","refillAmt"]},null,2))}</span>
+          </div>
+          <div style="font-size:9px;color:#333;letter-spacing:1px;margin-bottom:6px;margin-top:10px">JSON SCHEMA FOR REQUEST FLOW:</div>
+          <div style="background:#060606;border:1px solid #1a1a1a;border-radius:4px;padding:10px;font-size:9px;color:#3a3a3a;font-family:monospace;line-height:1.7;position:relative">
+            <button onclick="copySchema('request')" style="position:absolute;top:8px;right:8px;background:#1a1a2a;border:1px solid #2a2a3a;color:#555;padding:3px 8px;border-radius:3px;font-size:9px;cursor:pointer">Copy</button>
+            <span id="schema-request">${escHtml(JSON.stringify({type:"object",properties:{orderNo:{type:"string"},station:{type:"string"},fuelType:{type:"string"},quantity:{type:"number"},requestDate:{type:"string"},requestedBy:{type:"string"},notes:{type:"string"},status:{type:"string"},submittedAt:{type:"string"}},required:["orderNo","station","fuelType","quantity"]},null,2))}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEBHOOK URLS -->
+      <div class="card" style="padding:18px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#a855f7;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">🔗 Power Automate Webhook URLs</div>
+        <div style="margin-bottom:12px">
+          <div class="field-label" style="margin-bottom:6px">Refill Form — HTTP POST URL from Power Automate</div>
+          <input type="text" value="${cfg.refillWebhook||''}" placeholder="https://prod-xx.westus.logic.azure.com/workflows/..." oninput="state.shareConfig.refillWebhook=this.value;save();render()">
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:6px">Request Form — HTTP POST URL from Power Automate</div>
+          <input type="text" value="${cfg.requestWebhook||''}" placeholder="https://prod-xx.westus.logic.azure.com/workflows/..." oninput="state.shareConfig.requestWebhook=this.value;save();render()">
+        </div>
+      </div>
+
+      <!-- LINKS -->
+      <div class="grid-2" style="gap:16px;margin-bottom:16px">
+        <div class="card" style="padding:18px">
+          <div style="font-size:12px;font-weight:700;color:#ef4444;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">⛽ Refill Form</div>
+          <div style="font-size:10px;color:#444;margin-bottom:12px;line-height:1.7">Share with drivers to submit refill records from their phone or PC.</div>
+          ${hasRefill
+            ? `<div style="background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:8px 10px;font-size:9px;color:#444;word-break:break-all;margin-bottom:10px;font-family:monospace;max-height:48px;overflow:hidden">${escHtml(buildFormUrl('refill'))}</div>
+               <div style="display:flex;gap:8px">
+                 <button onclick="copyLink('refill')" style="flex:1;background:#1a0808;border:1px solid #ef4444;color:#f87171;padding:8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">⎘ Copy Link</button>
+                 <button onclick="openForm('refill')" style="flex:1;background:#ef4444;color:#fff;border:none;padding:8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">↗ Preview</button>
+               </div>`
+            : `<div style="font-size:11px;color:#2a2a2a">Paste the Power Automate URL above to generate a link.</div>`}
+        </div>
+        <div class="card" style="padding:18px">
+          <div style="font-size:12px;font-weight:700;color:#38bdf8;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📋 Request Form</div>
+          <div style="font-size:10px;color:#444;margin-bottom:12px;line-height:1.7">Share with station staff to submit fuel replenishment requests.</div>
+          ${hasRequest
+            ? `<div style="background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:8px 10px;font-size:9px;color:#444;word-break:break-all;margin-bottom:10px;font-family:monospace;max-height:48px;overflow:hidden">${escHtml(buildFormUrl('request'))}</div>
+               <div style="display:flex;gap:8px">
+                 <button onclick="copyLink('request')" style="flex:1;background:#001520;border:1px solid #38bdf8;color:#7dd3fc;padding:8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">⎘ Copy Link</button>
+                 <button onclick="openForm('request')" style="flex:1;background:#38bdf8;color:#000;border:none;padding:8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">↗ Preview</button>
+               </div>`
+            : `<div style="font-size:11px;color:#2a2a2a">Paste the Power Automate URL above to generate a link.</div>`}
+        </div>
+      </div>
+
+      <div id="share-status" style="margin-top:4px"></div>
+    </div>`;
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function copySchema(type) {
+  const el = document.getElementById('schema-'+type);
+  if(!el) return;
+  navigator.clipboard.writeText(el.innerText).then(()=>notify('Schema copied')).catch(()=>prompt('Copy:',el.innerText));
+}
+
+function buildFormUrl(type) {
+  const cfg = state.shareConfig;
+  const webhook = type==='refill' ? cfg.refillWebhook : cfg.requestWebhook;
+  const params = new URLSearchParams({
+    mode: type,
+    webhook,
+    stations: JSON.stringify(state.stations),
+    fuelTypes: JSON.stringify(state.fuelTypes),
+    trains: JSON.stringify(state.trains),
+  });
+  return location.href.split('?')[0] + '?' + params.toString();
+}
+
+function copyLink(type) {
+  const url = buildFormUrl(type);
+  navigator.clipboard.writeText(url).then(()=>notify('Link copied to clipboard')).catch(()=>prompt('Copy this link:', url));
+}
+
+function openForm(type) {
+  window.open(buildFormUrl(type), '_blank');
+}
+
+// ── Shared Form Mode (opened via link) ───────────────────────────────────
+(function checkSharedMode() {
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode');
+  if(!mode) return;
+  const webhook  = params.get('webhook');
+  const stations = JSON.parse(params.get('stations')||'[]');
+  const fuelTypes= JSON.parse(params.get('fuelTypes')||'[]');
+  const trains   = JSON.parse(params.get('trains')||'[]');
+
+  document.body.innerHTML = buildSharedFormHTML(mode, {webhook, stations, fuelTypes, trains});
+
+  window.submitSharedForm = async function() {
+    const btn = document.getElementById('sf-submit');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    document.getElementById('sf-msg').innerHTML = '';
+
+    const fields = document.querySelectorAll('[data-field]');
+    const data = {};
+    fields.forEach(f => data[f.dataset.field] = f.value);
+
+    const required = [...fields].filter(f => f.dataset.required === 'true');
+    const missing  = required.filter(f => !f.value.trim());
+    if(missing.length) {
+      document.getElementById('sf-msg').innerHTML = `<div style="color:#f87171;margin-top:12px;font-size:11px">⚠ Please fill in: ${missing.map(f=>f.dataset.label).join(', ')}</div>`;
+      btn.disabled = false; btn.textContent = 'Submit'; return;
+    }
+
+    let record;
+    if(mode === 'refill') {
+      const op = data.operator || '';
+      record = { ...data,
+        id: 'RF-' + Date.now(),
+        submittedAt: new Date().toISOString(),
+        operator: op.startsWith('EM') ? op.toUpperCase() : 'EM' + op.toUpperCase(),
+        refillAmt: Number(data.refillAmt) || 0,
+        fuelRemaining: Number(data.fuelRemaining) || 0,
+        startOdo: Number(data.startOdo) || 0,
+        endOdo: Number(data.endOdo) || 0,
+        totalAfter: (Number(data.fuelRemaining)||0) + (Number(data.refillAmt)||0),
+        sealCheck: 'PENDING', meterMismatch: false
+      };
+    } else {
+      const by = data.requestedBy || '';
+      record = { ...data,
+        orderNo: 'ORD-' + Date.now(),
+        status: 'Pending',
+        requestedBy: by.startsWith('EM') ? by.toUpperCase() : 'EM' + by.toUpperCase(),
+        quantity: Number(data.quantity) || 0,
+        submittedAt: new Date().toISOString()
+      };
+    }
+
+    try {
+      const resp = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      if(!resp.ok && resp.status !== 202) throw new Error('Server responded with ' + resp.status);
+      document.getElementById('sf-form').style.display = 'none';
+      document.getElementById('sf-success').style.display = 'block';
+    } catch(e) {
+      document.getElementById('sf-msg').innerHTML = `<div style="color:#f87171;margin-top:12px;font-size:11px">⚠ Submission failed: ${e.message}</div>`;
+      btn.disabled = false; btn.textContent = 'Submit';
+    }
+  };
+})();
+
+function buildSharedFormHTML(mode, {webhook, stations, fuelTypes, trains}) {
+  const isRefill = mode === 'refill';
+  const accent   = isRefill ? '#ef4444' : '#38bdf8';
+  const si = 'background:#0d0d0d;color:#e2e8f0;border:1px solid #222;border-radius:4px;padding:9px 12px;font-family:monospace;font-size:12px;width:100%;outline:none;box-sizing:border-box;';
+  const lbl = (t,req='') => `<div style="font-size:10px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">${t}${req?` <span style="color:${accent}">*</span>`:''}</div>`;
+  const today = new Date().toISOString().split('T')[0];
+  const g2 = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px';
+
+  const refillFields = `
+    <div style="${g2}">
+      <div>${lbl('Date',1)}<input data-field="date" data-required="true" data-label="Date" type="date" value="${today}" style="${si}"></div>
+      <div>${lbl('Station',1)}<select data-field="station" data-required="true" data-label="Station" style="${si}"><option value="">Select…</option>${stations.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    </div>
+    <div style="${g2}">
+      <div>${lbl('Train Code',1)}<select data-field="trainCode" data-required="true" data-label="Train Code" style="${si}"><option value="">Select…</option>${trains.map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div>${lbl('Fuel Type',1)}<select data-field="fuelType" data-required="true" data-label="Fuel Type" style="${si}"><option value="">Select…</option>${fuelTypes.map(f=>`<option>${f}</option>`).join('')}</select></div>
+    </div>
+    <div style="${g2}">
+      <div>${lbl('Invoice No.')}<input data-field="invoiceNo" type="text" placeholder="Optional" style="${si}"></div>
+      <div>${lbl('Operator Code',1)}
+        <div style="display:flex">
+          <span style="background:#111;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:9px 10px;font-size:12px;color:#f59e0b;font-weight:700;white-space:nowrap">EM</span>
+          <input data-field="operator" data-required="true" data-label="Operator" type="text" placeholder="001" style="${si}border-radius:0 4px 4px 0;border-left:none">
+        </div>
+      </div>
+    </div>
+    <div style="${g2}">
+      <div>${lbl('Meter Start')}<input data-field="startOdo" type="number" placeholder="Reading" style="${si}"></div>
+      <div>${lbl('Meter End')}<input data-field="endOdo" type="number" placeholder="Reading" style="${si}"></div>
+    </div>
+    <div style="${g2}">
+      <div>${lbl('Tank Remaining (L)')}<input data-field="fuelRemaining" type="number" min="0" placeholder="Before refill" style="${si}"></div>
+      <div>${lbl('Refill Amount (L)',1)}<input data-field="refillAmt" data-required="true" data-label="Refill Amount" type="number" min="1" placeholder="Litres" style="${si}"></div>
+    </div>
+    <div style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:5px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Seal Codes</div>
+      <div style="${g2}margin-bottom:0">
+        <div>${lbl('Old Seal Left',1)}<input data-field="oldSealLeft" data-required="true" data-label="Old Seal Left" type="text" style="${si}"></div>
+        <div>${lbl('Old Seal Right',1)}<input data-field="oldSealRight" data-required="true" data-label="Old Seal Right" type="text" style="${si}"></div>
+        <div style="margin-top:12px">${lbl('New Seal Left',1)}<input data-field="newSealLeft" data-required="true" data-label="New Seal Left" type="text" style="${si}"></div>
+        <div style="margin-top:12px">${lbl('New Seal Right',1)}<input data-field="newSealRight" data-required="true" data-label="New Seal Right" type="text" style="${si}"></div>
+      </div>
+    </div>`;
+
+  const requestFields = `
+    <div style="${g2}">
+      <div>${lbl('Station',1)}<select data-field="station" data-required="true" data-label="Station" style="${si}"><option value="">Select…</option>${stations.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      <div>${lbl('Fuel Type',1)}<select data-field="fuelType" data-required="true" data-label="Fuel Type" style="${si}"><option value="">Select…</option>${fuelTypes.map(f=>`<option>${f}</option>`).join('')}</select></div>
+    </div>
+    <div style="${g2}">
+      <div>${lbl('Quantity (L)',1)}<input data-field="quantity" data-required="true" data-label="Quantity" type="number" min="1" placeholder="Litres needed" style="${si}"></div>
+      <div>${lbl('Request Date',1)}<input data-field="requestDate" data-required="true" data-label="Request Date" type="date" value="${today}" style="${si}"></div>
+    </div>
+    <div style="margin-bottom:14px">
+      ${lbl('Requested By',1)}
+      <div style="display:flex">
+        <span style="background:#111;border:1px solid #222;border-right:none;border-radius:4px 0 0 4px;padding:9px 10px;font-size:12px;color:#f59e0b;font-weight:700;white-space:nowrap">EM</span>
+        <input data-field="requestedBy" data-required="true" data-label="Requested By" type="text" placeholder="Code" style="${si}border-radius:0 4px 4px 0;border-left:none">
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      ${lbl('Notes')}
+      <textarea data-field="notes" rows="3" placeholder="Optional" style="${si}resize:vertical"></textarea>
+    </div>`;
+
+  return `<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${isRefill ? 'Fuel Refill Form' : 'Fuel Request Form'} — FuelControl</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#080808;color:#e2e8f0;font-family:'DM Mono',monospace;min-height:100vh;padding:28px 16px;display:flex;justify-content:center}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:${accent} !important;box-shadow:0 0 0 2px ${accent}22}
+    select option{background:#0d0d0d}
+    button:hover{opacity:.88}
+  </style>
+  </head><body>
+  <div style="width:100%;max-width:540px">
+    <div style="margin-bottom:22px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:4px;color:#2a2a2a;text-transform:uppercase">FuelControl</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;letter-spacing:3px;color:${accent};text-transform:uppercase">${isRefill ? 'Fuel Refill' : 'Fuel Request'}</div>
+    </div>
+    <div id="sf-form" style="background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:22px">
+      ${isRefill ? refillFields : requestFields}
+      <button id="sf-submit" onclick="submitSharedForm()" style="width:100%;background:${accent};color:${isRefill?'#fff':'#000'};border:none;padding:13px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer">
+        Submit
+      </button>
+      <div id="sf-msg"></div>
+    </div>
+    <div id="sf-success" style="display:none;background:#001208;border:1px solid #22c55e;border-radius:8px;padding:40px;text-align:center;margin-top:0">
+      <div style="font-size:48px;margin-bottom:14px">✓</div>
+      <div style="font-size:18px;font-weight:700;color:#4ade80;font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;margin-bottom:8px">Submitted Successfully</div>
+      <div style="font-size:11px;color:#333;line-height:1.8">Your ${isRefill?'refill record':'fuel request'} has been sent to the operations team.<br>You may close this window.</div>
+    </div>
+  </div>
+  </body></html>`;
+}
+
+
+
+// ── Recalculate All ───────────────────────────────────────────────────────
+function recalculateAll() {
+  const isSpecialV = v => v==='NO_SEAL'||v==='NO_CAP';
+  const allTrains = [...new Set(state.refills.map(r => r.trainCode))];
+
+  allTrains.forEach(tc => {
+    const sorted = state.refills
+      .map((r, i) => ({r, i}))
+      .filter(({r}) => r.trainCode === tc)
+      .sort((a, b) => a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.i - b.i);
+
+    sorted.forEach(({r, i}, pos) => {
+      const prevR = pos > 0 ? sorted[pos - 1].r : null;
+
+      r.totalAfter = (Number(r.fuelRemaining)||0) + (Number(r.refillAmt)||0);
+      const md = (Number(r.endOdo)||0) - (Number(r.startOdo)||0);
+      r.meterDiff = md;
+      r.meterMismatch = r.startOdo && r.endOdo && md !== Number(r.refillAmt);
+
+      if(!prevR) {
+        r.sealCheck = 'FIRST FILL';
+      } else if(isSpecialV(r.oldSealLeft)||isSpecialV(r.oldSealRight)||isSpecialV(r.oldSealBattery)) {
+        r.sealCheck = 'FAIL';
+      } else {
+        const lOk = r.oldSealLeft  === prevR.newSealLeft;
+        const rOk = r.oldSealRight === prevR.newSealRight;
+        const bOk = !prevR.newSealBattery || r.oldSealBattery === prevR.newSealBattery;
+        r.sealCheck = (lOk && rOk && bOk) ? 'PASS' : 'FAIL';
+      }
+
+      if(isSpecialV(r.oldSealLeft))    r.newSealLeft    = r.oldSealLeft;
+      if(isSpecialV(r.oldSealRight))   r.newSealRight   = r.oldSealRight;
+      if(isSpecialV(r.oldSealBattery)) r.newSealBattery = r.oldSealBattery;
+
+      state.refills[i] = r;
+    });
+
+    // Rebuild maintenance flags for this train
+    state.maintenanceFlags = state.maintenanceFlags.filter(m => m.trainCode !== tc);
+    sorted.forEach(({r}) => {
+      ['Left','Right','Battery'].forEach(side => {
+        const val = side==='Battery' ? r.oldSealBattery : r[`oldSeal${side}`];
+        if(isSpecialV(val)) {
+          const existing = state.maintenanceFlags.find(m =>
+            m.trainCode===tc && m.side===side && m.issue===val && !m.fixed
+          );
+          if(!existing) {
+            state.maintenanceFlags.push({
+              id: 'MX-'+Date.now()+'-'+side+'-'+r.id,
+              trainCode: tc, issue: val, side,
+              detectedAt: r.date, refillId: r.id,
+              fixed: false, fixedAt: null,
+            });
+          }
+        }
+      });
+    });
+  });
+
+  save();
+  notify('✓ All records recalculated — seal checks, meters, totals and flags updated');
+  render();
+}
+
+// ── Export ────────────────────────────────────────────────────────────────
+function handleExport(){
+  if(typeof XLSX==='undefined'){notify('Excel library not loaded','err');return;}
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Refill Log (all data, sorted by date) ───────────────────────
+  const sorted = [...state.refills].sort((a,b) => a.date<b.date?-1:a.date>b.date?1:0);
+  const refillRows = sorted.map(r => ({
+    'Date':                   r.date||'',
+    'Train Code':             r.trainCode||'',
+    'Station':                r.station||'',
+    'Fuel Type':              r.fuelType||'',
+    'Invoice No.':            r.invoiceNo||'',
+    'Operator':               r.operator||'',
+    'Meter Start':            r.startOdo||0,
+    'Meter End':              r.endOdo||0,
+    'Distance (km)':          r.endOdo>r.startOdo ? r.endOdo-r.startOdo : 0,
+    'Tank Remaining (L)':     Number(r.fuelRemaining)||0,
+    'Refill Amount (L)':      Number(r.refillAmt)||0,
+    'Tank Total After (L)':   r.totalAfter||0,
+    'Old Seal Left':          r.oldSealLeft||'',
+    'Old Seal Right':         r.oldSealRight||'',
+    'Old Battery Seal':       r.oldSealBattery||'',
+    'New Seal Left':          r.newSealLeft||'',
+    'New Seal Right':         r.newSealRight||'',
+    'New Battery Seal':       r.newSealBattery||'',
+    'Seal Check':             r.sealCheck||'',
+    'Meter Mismatch':         r.meterMismatch ? 'YES' : '',
+  }));
+  const wsR = XLSX.utils.json_to_sheet(refillRows.length ? refillRows : [{'Date':'No data'}]);
+  const rCols = ['Date','Train Code','Station','Fuel Type','Invoice No.','Operator','Meter Start','Meter End','Distance (km)','Tank Remaining (L)','Refill Amount (L)','Tank Total After (L)','Old Seal Left','Old Seal Right','Old Battery Seal','New Seal Left','New Seal Right','New Battery Seal','Seal Check','Meter Mismatch'];
+  wsR['!cols'] = rCols.map(h => ({wch: Math.max(h.length+3, 12)}));
+  XLSX.utils.book_append_sheet(wb, wsR, 'Refill Log');
+
+  // ── Sheet 2: Summary by Train ─────────────────────────────────────────────
+  const tmap = {};
+  state.refills.forEach(r => {
+    if(!tmap[r.trainCode]) tmap[r.trainCode] = {refills:0, dispensed:0, km:0, sealFails:0, sealPass:0, firstFill:0};
+    tmap[r.trainCode].refills++;
+    tmap[r.trainCode].dispensed += Number(r.refillAmt||0);
+    if(r.endOdo>r.startOdo) tmap[r.trainCode].km += r.endOdo-r.startOdo;
+    if(r.sealCheck==='FAIL')       tmap[r.trainCode].sealFails++;
+    if(r.sealCheck==='PASS')       tmap[r.trainCode].sealPass++;
+    if(r.sealCheck==='FIRST FILL') tmap[r.trainCode].firstFill++;
+  });
+  const trainRows = Object.entries(tmap)
+    .sort((a,b) => b[1].dispensed - a[1].dispensed)
+    .map(([t,v]) => ({
+      'Train Code':          t,
+      'Total Refills':       v.refills,
+      'Total Dispensed (L)': v.dispensed,
+      'Total Distance (km)': v.km,
+      'Avg L/km':            v.km>0 ? Number((v.dispensed/v.km).toFixed(3)) : '',
+      'Seal PASS':           v.sealPass,
+      'Seal FAIL':           v.sealFails,
+      'First Fill':          v.firstFill,
+    }));
+  if(trainRows.length) {
+    // Totals row
+    trainRows.push({
+      'Train Code':          'TOTAL',
+      'Total Refills':       trainRows.reduce((a,r)=>a+r['Total Refills'],0),
+      'Total Dispensed (L)': trainRows.reduce((a,r)=>a+r['Total Dispensed (L)'],0),
+      'Total Distance (km)': trainRows.reduce((a,r)=>a+(r['Total Distance (km)']||0),0),
+      'Avg L/km':            '',
+      'Seal PASS':           trainRows.reduce((a,r)=>a+r['Seal PASS'],0),
+      'Seal FAIL':           trainRows.reduce((a,r)=>a+r['Seal FAIL'],0),
+      'First Fill':          trainRows.reduce((a,r)=>a+r['First Fill'],0),
+    });
+  }
+  const wsT = XLSX.utils.json_to_sheet(trainRows.length ? trainRows : [{'Train Code':'No data'}]);
+  wsT['!cols'] = ['Train Code','Total Refills','Total Dispensed (L)','Total Distance (km)','Avg L/km','Seal PASS','Seal FAIL','First Fill'].map(h=>({wch:Math.max(h.length+3,12)}));
+  XLSX.utils.book_append_sheet(wb, wsT, 'Summary by Train');
+
+  // ── Sheet 3: Summary by Station ──────────────────────────────────────────
+  const stationRows = state.stations.map(s => {
+    const sr = state.refills.filter(r => r.station===s);
+    const dispensed = sr.reduce((a,r)=>a+Number(r.refillAmt||0),0);
+    const km = sr.reduce((a,r)=>{const k=r.endOdo>r.startOdo?r.endOdo-r.startOdo:0;return a+k;},0);
+    return {
+      'Station':             s,
+      'Total Refills':       sr.length,
+      'Total Dispensed (L)': dispensed,
+      'Total Distance (km)': km,
+      'Avg L/km':            km>0 ? Number((dispensed/km).toFixed(3)) : '',
+      'Seal PASS':           sr.filter(r=>r.sealCheck==='PASS').length,
+      'Seal FAIL':           sr.filter(r=>r.sealCheck==='FAIL').length,
+      'Meter Mismatches':    sr.filter(r=>r.meterMismatch).length,
+    };
+  });
+  if(stationRows.length) {
+    stationRows.push({
+      'Station':             'TOTAL',
+      'Total Refills':       stationRows.reduce((a,r)=>a+r['Total Refills'],0),
+      'Total Dispensed (L)': stationRows.reduce((a,r)=>a+r['Total Dispensed (L)'],0),
+      'Total Distance (km)': stationRows.reduce((a,r)=>a+(r['Total Distance (km)']||0),0),
+      'Avg L/km':            '',
+      'Seal PASS':           stationRows.reduce((a,r)=>a+r['Seal PASS'],0),
+      'Seal FAIL':           stationRows.reduce((a,r)=>a+r['Seal FAIL'],0),
+      'Meter Mismatches':    stationRows.reduce((a,r)=>a+r['Meter Mismatches'],0),
+    });
+  }
+  const wsS = XLSX.utils.json_to_sheet(stationRows.length ? stationRows : [{'Station':'No data'}]);
+  wsS['!cols'] = ['Station','Total Refills','Total Dispensed (L)','Total Distance (km)','Avg L/km','Seal PASS','Seal FAIL','Meter Mismatches'].map(h=>({wch:Math.max(h.length+3,14)}));
+  XLSX.utils.book_append_sheet(wb, wsS, 'Summary by Station');
+
+  XLSX.writeFile(wb, `FuelControl_${today()}.xlsx`);
+  notify('Excel exported — Refill Log + 2 summary sheets');
+}
+
+function markMaintenanceFixed(id) {
+  const flag = state.maintenanceFlags.find(m=>m.id===id);
+  if(!flag) return;
+  flag.fixed = true;
+  flag.fixedAt = today();
+  save();
+  notify(`✓ ${flag.trainCode} ${flag.side} side marked as fixed`);
+  render();
+}
+
+function attachHandlers(){}
+
+// Init
+render();
+</script>
+</body>
+</html>
